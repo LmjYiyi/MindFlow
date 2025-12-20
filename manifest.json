@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "MindFlow",
+  "version": "1.0.0",
+  "description": "智能浏览压力监测与视觉解压插件 - 通过监测浏览行为自动进行视觉干预",
+  
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["lib/p5.min.js", "content.js"],
+      "css": ["style.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "MindFlow - 数字压力指数"
+  },
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/p5.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
+

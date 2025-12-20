@@ -1,0 +1,1554 @@
+/**
+ * MindFlow - 样式表
+ * 
+ * 设计理念：
+ * 1. 莫兰迪自然疗愈色系 (Morandi & Biophilic Design)
+ * 2. 静水流深 - 常态静止，悬停微动效
+ * 3. 降低认知负荷 - 减少视觉噪音
+ */
+
+/* ============================================
+   CSS 变量定义 - 莫兰迪自然疗愈色系
+   ============================================ */
+
+:root {
+  /* 主题色 - 森林绿系 (Biophilic) */
+  --mindflow-primary: #2D6A4F;        /* 森林绿 */
+  --mindflow-secondary: #95D5B2;      /* 鼠尾草绿 */
+  --mindflow-accent: #40916C;         /* 翠绿 */
+  --mindflow-light: #B7E4C7;          /* 薄荷绿 */
+  --mindflow-dark: #1B4332;           /* 深海蓝绿 */
+  
+  /* 大地色辅助 */
+  --mindflow-earth: #B07D62;          /* 大地棕 */
+  --mindflow-sand: #D4C5B9;           /* 沙色 */
+  --mindflow-stone: #8B8B8B;          /* 石灰色 */
+  
+  /* 背景色 */
+  --mindflow-bg-dark: #1B4332;
+  --mindflow-bg-light: #F8FAF7;       /* 自然白 */
+  --mindflow-bg-overlay: rgba(27, 67, 50, 0.92);
+  
+  /* 文字色 */
+  --mindflow-text-light: #F0F4F1;
+  --mindflow-text-dark: #2C3E36;
+  --mindflow-text-muted: #6B7D74;
+  
+  /* 阅读模式 */
+  --mindflow-reader-bg: #FAFCF9;
+  --mindflow-reader-text: #2C3E36;
+  --mindflow-reader-link: #2D6A4F;
+  --mindflow-reader-width: 800px;
+  
+  /* 动画 - 温和的过渡 */
+  --mindflow-transition: 0.3s ease;
+  --mindflow-transition-slow: 0.6s ease;
+}
+
+/* ============================================
+   Level 1: 柔和模式 (Soft Mode)
+   护眼滤镜效果
+   ============================================ */
+
+.mindflow-soft-mode {
+  /* 柔和的护眼效果：降低亮度、增加暖色调、轻微模糊 */
+  filter: 
+    sepia(15%)           /* 增加暖色调 */
+    brightness(0.92)     /* 轻微降低亮度 */
+    saturate(0.9)        /* 轻微降低饱和度 */
+    contrast(0.95);      /* 轻微降低对比度 */
+  
+  transition: filter var(--mindflow-transition-slow);
+}
+
+/* 确保柔和模式不影响 MindFlow 自己的 UI */
+.mindflow-soft-mode .mindflow-reader-overlay,
+.mindflow-soft-mode .mindflow-therapy-container {
+  filter: none !important;
+}
+
+/* ============================================
+   Level 2: 阅读模式 (Reader Mode)
+   纯净文本覆盖层
+   ============================================ */
+
+/* 阅读模式覆盖层 */
+.mindflow-reader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--mindflow-reader-bg);
+  z-index: 999998;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* 入场动画 */
+  animation: mindflow-fade-in 0.4s ease;
+}
+
+@keyframes mindflow-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 阅读模式容器 */
+.mindflow-reader-container {
+  max-width: var(--mindflow-reader-width);
+  margin: 0 auto;
+  padding: 60px 40px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 阅读模式头部 */
+.mindflow-reader-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+/* 文章标题 */
+.mindflow-reader-title {
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--mindflow-reader-text);
+  line-height: 1.4;
+  margin: 0;
+  flex: 1;
+  padding-right: 80px;
+}
+
+/* 关闭按钮 - 莫兰迪色系 */
+.mindflow-reader-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: linear-gradient(135deg, var(--mindflow-primary) 0%, var(--mindflow-accent) 100%);
+  color: white;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--mindflow-transition);
+  box-shadow: 0 4px 15px rgba(45, 106, 79, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mindflow-reader-close:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 6px 20px rgba(45, 106, 79, 0.6);
+}
+
+.mindflow-reader-close:active {
+  transform: scale(0.95);
+}
+
+/* AI 摘要容器 - 莫兰迪色系 */
+.mindflow-summary-container {
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.08) 0%, rgba(149, 213, 178, 0.08) 100%);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 35px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(45, 106, 79, 0.08);
+}
+
+/* AI 摘要头部 - 莫兰迪色系，静态 */
+.mindflow-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  background: linear-gradient(145deg, 
+    var(--mindflow-primary) 0%, 
+    var(--mindflow-dark) 100%);
+  color: white;
+}
+
+.mindflow-summary-icon {
+  font-size: 1.5rem;
+  animation: mindflow-ai-pulse 2s ease-in-out infinite;
+}
+
+@keyframes mindflow-ai-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.mindflow-summary-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.mindflow-summary-badge {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+}
+
+/* AI 摘要内容区域 */
+.mindflow-summary-content {
+  padding: 25px;
+  font-size: 1rem;
+  line-height: 1.9;
+  color: #333;
+}
+
+/* 加载动画 */
+.mindflow-summary-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.mindflow-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #e0e0e0;
+  border-top-color: var(--mindflow-primary);
+  border-radius: 50%;
+  animation: mindflow-spin 0.8s linear infinite;
+}
+
+@keyframes mindflow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 摘要文本样式 */
+.mindflow-summary-text {
+  line-height: 1.9;
+}
+
+.mindflow-summary-text p {
+  margin: 0 0 1em 0;
+  color: #444;
+}
+
+.mindflow-summary-point {
+  padding: 10px 0;
+  padding-left: 1.5em;
+  position: relative;
+  color: #333;
+  line-height: 1.7;
+}
+
+.mindflow-summary-point::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #667eea;
+  font-weight: bold;
+}
+
+/* 错误状态 */
+.mindflow-summary-error {
+  text-align: center;
+  padding: 20px;
+}
+
+.mindflow-error-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.mindflow-error-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e74c3c;
+  margin-bottom: 8px;
+}
+
+.mindflow-error-message {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.mindflow-error-tip {
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
+/* 文章内容区域 */
+.mindflow-reader-content {
+  font-family: 'Georgia', 'Noto Serif SC', 'Source Han Serif SC', serif;
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: var(--mindflow-reader-text);
+}
+
+/* 内容中的段落 */
+.mindflow-reader-content p {
+  margin-bottom: 1.5em;
+  text-align: justify;
+}
+
+/* 内容中的标题 */
+.mindflow-reader-content h1,
+.mindflow-reader-content h2,
+.mindflow-reader-content h3,
+.mindflow-reader-content h4 {
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  color: var(--mindflow-reader-text);
+  margin-top: 2em;
+  margin-bottom: 1em;
+  line-height: 1.4;
+}
+
+.mindflow-reader-content h2 {
+  font-size: 1.6rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5em;
+}
+
+.mindflow-reader-content h3 {
+  font-size: 1.35rem;
+}
+
+/* 内容中的链接 */
+.mindflow-reader-content a {
+  color: var(--mindflow-reader-link);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--mindflow-transition);
+}
+
+.mindflow-reader-content a:hover {
+  border-bottom-color: var(--mindflow-reader-link);
+}
+
+/* 内容中的图片 */
+.mindflow-reader-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em auto;
+  display: block;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 内容中的引用 */
+.mindflow-reader-content blockquote {
+  border-left: 4px solid var(--mindflow-primary);
+  padding-left: 20px;
+  margin: 1.5em 0;
+  color: #666;
+  font-style: italic;
+}
+
+/* 内容中的代码 */
+.mindflow-reader-content code {
+  background: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+}
+
+.mindflow-reader-content pre {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.mindflow-reader-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* 内容中的列表 */
+.mindflow-reader-content ul,
+.mindflow-reader-content ol {
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+.mindflow-reader-content li {
+  margin-bottom: 0.5em;
+}
+
+/* ============================================
+   Level 3: 视觉疗愈 (Visual Therapy)
+   全屏 Canvas 动画容器
+   ============================================ */
+
+/* 疗愈模式容器 */
+.mindflow-therapy-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999999;
+  overflow: hidden;
+  
+  /* 入场动画 */
+  animation: mindflow-therapy-enter 0.8s ease;
+}
+
+@keyframes mindflow-therapy-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* p5.js Canvas 样式 */
+.mindflow-therapy-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 顶部呼吸引导区域（不与圆环重叠） */
+.mindflow-therapy-top-guide {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--mindflow-light);
+  z-index: 10;
+  pointer-events: none;
+  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+}
+
+.mindflow-breath-text {
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  margin: 0;
+  color: var(--mindflow-secondary);
+  opacity: 0.9;
+}
+
+.mindflow-breath-timer {
+  font-size: 5rem;
+  font-weight: 200;
+  margin: 15px 0;
+  color: white;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 底部控制区域 */
+.mindflow-therapy-bottom-control {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--mindflow-light);
+  z-index: 10;
+  text-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+}
+
+.mindflow-therapy-subtitle {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  margin: 0 0 10px 0;
+}
+
+.mindflow-therapy-countdown {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  margin: 0 0 20px 0;
+}
+
+/* 紧急跳过按钮（尊重用户控制权）*/
+.mindflow-therapy-skip {
+  display: inline-block;
+  padding: 12px 30px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 25px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+}
+
+.mindflow-therapy-skip:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* ============================================
+   渐进式建议提示 (Suggestion Toast)
+   基于自我决定论：把选择权还给用户
+   ============================================ */
+
+.mindflow-suggestion-toast {
+  position: fixed;
+  bottom: 100px;
+  right: 100px;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 18px 22px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  z-index: 999995;
+  max-width: 360px;
+  animation: mindflow-toast-enter 0.4s ease;
+  border-left: 4px solid var(--mindflow-secondary);
+}
+
+@keyframes mindflow-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mindflow-suggestion-toast.mindflow-suggestion-hiding {
+  animation: mindflow-toast-exit 0.3s ease forwards;
+}
+
+@keyframes mindflow-toast-exit {
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.mindflow-suggestion-strong {
+  border-left-color: var(--mindflow-earth);
+}
+
+.mindflow-suggestion-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.mindflow-suggestion-content {
+  flex: 1;
+}
+
+.mindflow-suggestion-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mindflow-text-dark);
+  margin-bottom: 6px;
+}
+
+.mindflow-suggestion-text {
+  font-size: 0.9rem;
+  color: var(--mindflow-text-muted);
+  line-height: 1.5;
+}
+
+.mindflow-suggestion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.mindflow-suggestion-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mindflow-suggestion-accept {
+  background: var(--mindflow-primary);
+  color: white;
+}
+
+.mindflow-suggestion-accept:hover {
+  background: var(--mindflow-accent);
+}
+
+.mindflow-suggestion-dismiss {
+  background: #f0f0f0;
+  color: var(--mindflow-text-muted);
+}
+
+.mindflow-suggestion-dismiss:hover {
+  background: #e0e0e0;
+}
+
+/* ============================================
+   悬浮触发按钮 (Float Button)
+   设计原则：静水流深 - 常态静止，悬停微动效
+   ============================================ */
+
+.mindflow-float-button {
+  position: fixed;
+  right: 20px;
+  bottom: 100px;
+  width: 60px;
+  height: 60px;
+  z-index: 999996;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s ease;
+}
+
+.mindflow-float-button:hover {
+  transform: scale(1.05);
+}
+
+.mindflow-float-button:hover .mindflow-float-tooltip {
+  opacity: 1;
+  transform: translateX(-10px);
+  pointer-events: auto;
+}
+
+/* 常态静止，使用莫兰迪色系 */
+.mindflow-float-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(145deg, 
+    var(--mindflow-primary) 0%, 
+    var(--mindflow-accent) 100%);
+  /* 常态无动画，保持静止 */
+  box-shadow: 
+    0 4px 15px rgba(45, 106, 79, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, background 0.3s ease;
+}
+
+/* 悬停时才有微弱的呼吸效果 */
+.mindflow-float-button:hover .mindflow-float-inner {
+  box-shadow: 
+    0 6px 20px rgba(45, 106, 79, 0.4),
+    0 0 0 4px rgba(149, 213, 178, 0.2);
+}
+
+.mindflow-float-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.mindflow-float-dsi {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* 环形进度指示器 - 简化 */
+.mindflow-float-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.mindflow-float-ring::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--progress-color, var(--mindflow-secondary));
+  border-right-color: var(--progress-color, var(--mindflow-secondary));
+  transform: rotate(calc(var(--progress-offset, 163) * 1deg));
+  transition: transform 0.5s ease, border-color 0.5s ease;
+}
+
+/* 级别颜色变化（无动画，静态颜色） */
+.mindflow-float-level-0 .mindflow-float-inner {
+  background: linear-gradient(145deg, #2D6A4F 0%, #40916C 100%);
+}
+
+.mindflow-float-level-1 .mindflow-float-inner {
+  background: linear-gradient(145deg, #95D5B2 0%, #74C69D 100%);
+}
+
+.mindflow-float-level-2 .mindflow-float-inner {
+  background: linear-gradient(145deg, #B07D62 0%, #A67B5B 100%);
+}
+
+/* 只有 Level 3 才有警示脉冲（提醒用户） */
+.mindflow-float-level-3 .mindflow-float-inner {
+  background: linear-gradient(145deg, #8B4513 0%, #A0522D 100%);
+  animation: mindflow-gentle-pulse 3s ease-in-out infinite;
+}
+
+@keyframes mindflow-gentle-pulse {
+  0%, 100% { box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4); }
+  50% { box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4), 0 0 0 8px rgba(139, 69, 19, 0.1); }
+}
+
+/* 悬浮按钮 Tooltip - 莫兰迪色系 */
+.mindflow-float-tooltip {
+  position: absolute;
+  right: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%) translateX(10px);
+  background: var(--mindflow-dark);
+  color: var(--mindflow-text-light);
+  padding: 10px 16px;
+  border-radius: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.mindflow-float-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: var(--mindflow-dark);
+}
+
+.mindflow-float-tooltip span:first-child {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.mindflow-float-shortcut {
+  font-size: 0.75rem;
+  color: var(--mindflow-text-muted);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* ============================================
+   侧边栏面板 (Sidebar Panel)
+   ============================================ */
+
+.mindflow-sidebar {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  height: 100vh;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: -4px 0 30px rgba(0, 0, 0, 0.15);
+  z-index: 999997;
+  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+.mindflow-sidebar.visible {
+  right: 0;
+}
+
+/* 侧边栏头部 - 莫兰迪自然色系，常态静止 */
+.mindflow-sidebar-header {
+  padding: 20px;
+  background: linear-gradient(145deg, 
+    var(--mindflow-primary) 0%, 
+    var(--mindflow-dark) 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(27, 67, 50, 0.2);
+  /* 无动画，保持静止 */
+}
+
+.mindflow-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mindflow-logo-icon {
+  font-size: 1.8rem;
+}
+
+.mindflow-logo-text {
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.mindflow-sidebar-toggle {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.mindflow-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* 侧边栏内容区域 */
+.mindflow-sidebar-content {
+  flex: 1;
+  padding: 25px 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mindflow-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mindflow-sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mindflow-sidebar-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.mindflow-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* DSI 显示区域 */
+.mindflow-dsi-display {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.mindflow-dsi-label {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* DSI 数值 - 静态莫兰迪色系，无动画 */
+.mindflow-dsi-value {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 15px;
+  color: var(--mindflow-primary);
+  transition: color 0.5s ease;
+}
+
+.mindflow-dsi-value.mindflow-dsi-level-0 {
+  color: #2D6A4F;  /* 森林绿 */
+}
+
+.mindflow-dsi-value.mindflow-dsi-level-1 {
+  color: #95D5B2;  /* 鼠尾草绿 */
+}
+
+.mindflow-dsi-value.mindflow-dsi-level-2 {
+  color: #B07D62;  /* 大地棕 */
+}
+
+.mindflow-dsi-value.mindflow-dsi-level-3 {
+  color: #8B4513;  /* 深棕 */
+}
+
+/* DSI 进度条 - 静态莫兰迪色系 */
+.mindflow-dsi-bar {
+  width: 100%;
+  height: 8px;
+  background: #E8EDE9;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.mindflow-dsi-bar-fill {
+  height: 100%;
+  background: var(--mindflow-primary);
+  transition: width 0.5s ease, background 0.5s ease;
+  border-radius: 8px;
+}
+
+.mindflow-dsi-bar-fill.mindflow-dsi-level-0 {
+  background: #2D6A4F;  /* 森林绿 */
+}
+
+.mindflow-dsi-bar-fill.mindflow-dsi-level-1 {
+  background: #95D5B2;  /* 鼠尾草绿 */
+}
+
+.mindflow-dsi-bar-fill.mindflow-dsi-level-2 {
+  background: #B07D62;  /* 大地棕 */
+}
+
+.mindflow-dsi-bar-fill.mindflow-dsi-level-3 {
+  background: #8B4513;  /* 深棕 */
+}
+
+.mindflow-dsi-status {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+}
+
+/* 级别指示器 */
+.mindflow-level-indicator {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+.mindflow-level-title {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mindflow-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mindflow-level-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.mindflow-level-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: all 0.3s ease;
+}
+
+.mindflow-level-item.active {
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  color: #667eea;
+  font-weight: 500;
+}
+
+.mindflow-level-item.active .mindflow-level-dot {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+  animation: mindflow-level-pulse 2s ease-in-out infinite;
+}
+
+@keyframes mindflow-level-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+/* 信息卡片 */
+.mindflow-info-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+.mindflow-info-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.mindflow-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mindflow-info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #666;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.mindflow-info-icon {
+  font-size: 1.2rem;
+}
+
+/* 操作按钮 */
+.mindflow-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.mindflow-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 按钮 - 莫兰迪色系，常态静止 */
+.mindflow-btn-reset {
+  background: var(--mindflow-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+  transition: all 0.3s ease;
+}
+
+.mindflow-btn-reset:hover {
+  background: var(--mindflow-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.4);
+}
+
+.mindflow-btn-reset:active {
+  transform: translateY(0);
+}
+
+/* 侧边栏底部 */
+.mindflow-sidebar-footer {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.mindflow-shortcut-tip {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+
+@media (max-width: 900px) {
+  .mindflow-reader-container {
+    padding: 40px 25px;
+  }
+  
+  .mindflow-reader-title {
+    font-size: 1.8rem;
+    padding-right: 60px;
+  }
+  
+  .mindflow-reader-close {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    line-height: 40px;
+  }
+  
+  /* 侧边栏响应式 */
+  .mindflow-sidebar {
+    width: 320px;
+    right: -340px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mindflow-reader-container {
+    padding: 30px 20px;
+  }
+  
+  .mindflow-reader-title {
+    font-size: 1.5rem;
+    padding-right: 60px;
+  }
+  
+  .mindflow-reader-content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+  }
+  
+  .mindflow-breath-text {
+    font-size: 1.6rem;
+  }
+  
+  .mindflow-breath-timer {
+    font-size: 4rem;
+  }
+  
+  /* 侧边栏在小屏幕上全屏显示 */
+  .mindflow-sidebar {
+    width: 100%;
+    right: -100%;
+  }
+  
+  .mindflow-sidebar.visible {
+    right: 0;
+  }
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+
+@media print {
+  .mindflow-reader-overlay {
+    position: static;
+    height: auto;
+  }
+  
+  .mindflow-reader-close,
+  .mindflow-reader-actions,
+  .mindflow-therapy-container {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   无障碍优化
+   ============================================ */
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .mindflow-soft-mode {
+    transition: none;
+  }
+  
+  .mindflow-reader-overlay,
+  .mindflow-therapy-container {
+    animation: none;
+  }
+  
+  .mindflow-therapy-top-guide,
+  .mindflow-therapy-bottom-control {
+    animation: none;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .mindflow-reader-content {
+    color: #000;
+  }
+  
+  .mindflow-reader-title {
+    color: #000;
+  }
+}
+
+/* 暗色主题偏好 */
+@media (prefers-color-scheme: dark) {
+  .mindflow-reader-overlay {
+    background: #1a1a2e;
+  }
+  
+  .mindflow-reader-title,
+  .mindflow-reader-content,
+  .mindflow-reader-content h1,
+  .mindflow-reader-content h2,
+  .mindflow-reader-content h3,
+  .mindflow-reader-content h4 {
+    color: #e0e0e0;
+  }
+  
+  .mindflow-reader-content a {
+    color: #90caf9;
+  }
+  
+  .mindflow-reader-header {
+    border-bottom-color: #333;
+  }
+  
+  .mindflow-reader-content h2 {
+    border-bottom-color: #333;
+  }
+  
+  .mindflow-reader-content blockquote {
+    color: #aaa;
+  }
+  
+  .mindflow-reader-content code {
+    background: #2d2d2d;
+    color: #e0e0e0;
+  }
+  
+  .mindflow-summary-container {
+    background: linear-gradient(135deg, #2a2a3e 0%, #1f1f2e 100%);
+  }
+  
+  .mindflow-summary-title {
+    color: #e0e0e0;
+  }
+  
+  .mindflow-summary-content {
+    color: #bbb;
+  }
+}
+
+/* ============================================
+   干预询问对话框（尊重用户控制权）
+   ============================================ */
+
+.mindflow-intervention-ask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999990;
+  animation: mindflow-fade-in 0.3s ease;
+}
+
+.mindflow-ask-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: mindflow-slide-up 0.3s ease;
+}
+
+@keyframes mindflow-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.mindflow-ask-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.mindflow-ask-content {
+  margin-bottom: 25px;
+}
+
+.mindflow-ask-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--mindflow-text-dark);
+  margin-bottom: 10px;
+}
+
+.mindflow-ask-desc {
+  font-size: 0.95rem;
+  color: var(--mindflow-text-muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.mindflow-ask-dsi {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(45, 106, 79, 0.1);
+  color: var(--mindflow-primary);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.mindflow-ask-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mindflow-ask-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mindflow-ask-accept {
+  background: linear-gradient(135deg, var(--mindflow-primary) 0%, var(--mindflow-accent) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(45, 106, 79, 0.3);
+}
+
+.mindflow-ask-accept:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(45, 106, 79, 0.4);
+}
+
+.mindflow-ask-later {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.mindflow-ask-later:hover {
+  background: #eee;
+}
+
+.mindflow-ask-dismiss {
+  background: transparent;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.mindflow-ask-dismiss:hover {
+  color: #666;
+}
+
+/* ============================================
+   白噪音控件样式
+   ============================================ */
+
+.mindflow-whitenoise-card {
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.08) 0%, rgba(149, 213, 178, 0.08) 100%);
+  border: 1px solid rgba(45, 106, 79, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.mindflow-whitenoise-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mindflow-whitenoise-icon {
+  font-size: 1.2rem;
+}
+
+.mindflow-whitenoise-title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--mindflow-text-dark);
+}
+
+/* 开关样式 */
+.mindflow-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.mindflow-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.mindflow-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+.mindflow-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mindflow-switch input:checked + .mindflow-switch-slider {
+  background: var(--mindflow-primary);
+}
+
+.mindflow-switch input:checked + .mindflow-switch-slider:before {
+  transform: translateX(20px);
+}
+
+/* 白噪音选项区域 */
+.mindflow-whitenoise-options {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, margin-top 0.3s ease;
+}
+
+.mindflow-whitenoise-options.active {
+  max-height: 200px;
+  margin-top: 16px;
+}
+
+.mindflow-whitenoise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mindflow-noise-btn {
+  padding: 12px 8px;
+  background: white;
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  border-radius: 10px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mindflow-noise-btn:hover {
+  background: rgba(45, 106, 79, 0.1);
+  transform: scale(1.05);
+}
+
+.mindflow-noise-btn.active {
+  background: var(--mindflow-primary);
+  border-color: var(--mindflow-primary);
+  box-shadow: 0 2px 10px rgba(45, 106, 79, 0.3);
+}
+
+/* 音量控制 */
+.mindflow-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mindflow-volume-icon {
+  font-size: 1rem;
+  color: var(--mindflow-text-muted);
+}
+
+.mindflow-volume-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ddd;
+  border-radius: 2px;
+  outline: none;
+}
+
+.mindflow-volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--mindflow-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mindflow-volume-value {
+  font-size: 0.85rem;
+  color: var(--mindflow-text-muted);
+  min-width: 35px;
+  text-align: right;
+}
+

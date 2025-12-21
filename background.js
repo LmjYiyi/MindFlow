@@ -437,7 +437,8 @@ async function updateDSI(tabId) {
   let newLevel = 0;
   let suggestion = null;  // 建议类型
 
-  // 【核心修复点】：如果疗愈模式正在进行中，强制锁定 Level 为 3
+  // 1. 优先检查：疗愈模式 (Level 3)
+  // 如果疗愈模式正在进行中，强制锁定 Level 为 3
   // 只有当 isTherapyActive 为 false 时（倒计时结束或用户跳过），才允许降级
   if (state.isTherapyActive) {
     newLevel = 3; 
@@ -457,36 +458,49 @@ async function updateDSI(tabId) {
     return; // 直接返回，不执行后续逻辑
   }
   
-  // --- 正常层级判断逻辑（仅在 isTherapyActive 为 false 时执行）---
-  // Level 3: 视觉疗愈（高阈值，用户可跳过）
-  if (state.dsi > DSI_CONFIG.LEVEL_3_THRESHOLD) {
-    newLevel = 3;
-  }
-  // Level 2: 阅读模式建议
-  else if (state.dsi > DSI_CONFIG.LEVEL_2_SUGGEST) {
-    newLevel = 2;
-    suggestion = 'strong';  // 强烈建议
-  }
-  else if (state.dsi > DSI_CONFIG.LEVEL_2_THRESHOLD) {
-    newLevel = 1;  // 保持 Level 1，但发送 Level 2 建议
-    suggestion = 'gentle';  // 温和建议
-  }
-  // Level 1: 柔和模式（宽进严出策略）
-  else {
-    // 【修改点】：Level 1 的判断逻辑优化
-    // 如果当前已经是 Level 1，则使用更低的"退出阈值"（例如 20）
-    // 如果当前不是 Level 1，则使用正常的"进入阈值"（例如 35）
-    const level1ExitThreshold = 20; 
-    const isAlreadyLevel1 = state.currentLevel === 1;
-
-    if (state.dsi > DSI_CONFIG.LEVEL_1_THRESHOLD) {
-      newLevel = 1;
-    } else if (isAlreadyLevel1 && state.dsi > level1ExitThreshold) {
-      // DSI 虽然低于触发值(35)，但高于退出值(20)，保持 Level 1
-      newLevel = 1;
+  // 2. 次级优先：阅读模式锁定 (Level 2)
+  // ✅ [核心修复]：只要阅读模式是激活状态，强制锁定 Level 至少为 2
+  // 即使 DSI 降到了 45 (心流区)，也不允许降级到 Level 1/0
+  if (state.isReaderModeActive) {
+    // 允许升级到 Level 3，但不允许降级
+    if (state.dsi > DSI_CONFIG.LEVEL_3_THRESHOLD) {
+      newLevel = 3;
     } else {
-      // 低于退出值，或者本来就没开启，设为 0
-      newLevel = 0;
+      newLevel = 2; // 🔒 强制锁定在 Level 2
+    }
+  } 
+  // 3. 标准阈值判断逻辑 (仅在非阅读模式且非疗愈模式下执行)
+  else {
+    // Level 3: 视觉疗愈（高阈值，用户可跳过）
+    if (state.dsi > DSI_CONFIG.LEVEL_3_THRESHOLD) {
+      newLevel = 3;
+    }
+    // Level 2: 阅读模式建议
+    else if (state.dsi > DSI_CONFIG.LEVEL_2_SUGGEST) {
+      newLevel = 2;
+      suggestion = 'strong';  // 强烈建议
+    }
+    else if (state.dsi > DSI_CONFIG.LEVEL_2_THRESHOLD) {
+      newLevel = 1;  // 保持 Level 1，但发送 Level 2 建议
+      suggestion = 'gentle';  // 温和建议
+    }
+    // Level 1: 柔和模式（宽进严出策略）
+    else {
+      // 【修改点】：Level 1 的判断逻辑优化
+      // 如果当前已经是 Level 1，则使用更低的"退出阈值"（例如 20）
+      // 如果当前不是 Level 1，则使用正常的"进入阈值"（例如 35）
+      const level1ExitThreshold = 20; 
+      const isAlreadyLevel1 = state.currentLevel === 1;
+
+      if (state.dsi > DSI_CONFIG.LEVEL_1_THRESHOLD) {
+        newLevel = 1;
+      } else if (isAlreadyLevel1 && state.dsi > level1ExitThreshold) {
+        // DSI 虽然低于触发值(35)，但高于退出值(20)，保持 Level 1
+        newLevel = 1;
+      } else {
+        // 低于退出值，或者本来就没开启，设为 0
+        newLevel = 0;
+      }
     }
   }
 

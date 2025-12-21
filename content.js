@@ -613,6 +613,21 @@
       colorLayer.classList.add(`paper-tint-${effectType}`);     // 添加底色类
       
       console.log(`[Atmosphere] 切换模式: ${effectType}`);
+      
+      // ✅ 关键修改：如果阅读模式处于激活状态，同步更新阅读模式的背景色
+      if (this.readerModeActive && this.readerOverlay) {
+        // 移除旧的 tint 类
+        this.readerOverlay.classList.forEach(cls => {
+          if (cls.startsWith('paper-tint-')) {
+            this.readerOverlay.classList.remove(cls);
+          }
+        });
+        // 添加新的 tint 类
+        this.readerOverlay.classList.add(`paper-tint-${effectType}`);
+        
+        // 强制重绘粒子（因为容器被清空了）
+        // 注意：粒子容器是在阅读模式之上的（通过 CSS z-index 控制）
+      }
 
       // 兼容处理：如果用户之前选了 night、rain 或 wind，现在不处理或转为默认
       if (type === 'night' || type === 'rain' || type === 'wind') return; 
@@ -740,7 +755,9 @@
       // 创建阅读模式覆盖层
       this.readerOverlay = document.createElement('div');
       this.readerOverlay.id = 'mindflow-reader-overlay';
-      this.readerOverlay.className = 'mindflow-reader-overlay';
+      // ✅ 关键修改：默认应用当前氛围的颜色类
+      const atmoClass = this.currentAtmosphere ? `paper-tint-${this.currentAtmosphere}` : '';
+      this.readerOverlay.className = `mindflow-reader-overlay ${atmoClass}`;
 
       // 构建阅读模式内容（优化布局）
       this.readerOverlay.innerHTML = `
@@ -778,6 +795,7 @@
       document.body.style.overflow = 'hidden';
 
       // 确保覆盖层在文档最顶层（使用内联样式确保优先级）
+      // ✅ 注意：CSS 中已经提升了 atmosphere-container 的 z-index，所以这里不需要特别担心遮挡
       this.readerOverlay.style.cssText = `
         position: fixed !important;
         top: 0 !important;
@@ -786,7 +804,7 @@
         height: 100vh !important;
         min-height: 100vh !important;
         z-index: 2147483647 !important;
-        background: var(--mindflow-reader-bg) !important;
+        /* background: var(--mindflow-reader-bg) !important;  <-- 移除此行，由 CSS 类控制 */
       `;
 
       // 保存原始 overflow 以便恢复
@@ -802,59 +820,14 @@
         });
       }
 
-      // 【修改点】：获取当前激活的氛围类型
-      const currentAtmosphereType = this.currentAtmosphere;
-
-      // 【修改点】：应用当前氛围到阅读模式
-      const colorLayer = document.getElementById('mindflow-paper-layer');
-      const atmoContainer = document.getElementById('mindflow-atmosphere-container');
-
-      // 1. 应用到 colorLayer (纸质背景色)
-      if (colorLayer) {
-        // 移除所有旧的 tint 类
-        colorLayer.classList.forEach(className => {
-          if (className.startsWith('paper-tint-')) {
-            colorLayer.classList.remove(className);
-          }
-        });
-        // 添加新的 tint 类
-        if (currentAtmosphereType) {
-          colorLayer.classList.add(`paper-tint-${currentAtmosphereType}`);
-        }
-      }
-
-      // 2. 应用到 atmosphere-container (粒子效果)
-      if (atmoContainer) {
-        // 清空旧粒子
-        atmoContainer.innerHTML = '';
-        // 重置基础类
-        atmoContainer.className = 'mindflow-atmosphere-container';
-        // 移除所有旧的 effect 类
-        atmoContainer.classList.forEach(className => {
-          if (className.startsWith('atmo-effect-')) {
-            atmoContainer.classList.remove(className);
-          }
-        });
-        // 添加新的 effect 类并重新初始化粒子
-        if (currentAtmosphereType) {
-          atmoContainer.classList.add(`atmo-effect-${currentAtmosphereType}`);
-          // 重新初始化粒子（非常重要！）
-          switch (currentAtmosphereType) {
-            case 'forest': 
-              this.initForest(atmoContainer); 
-              break;
-            case 'ocean':  
-              this.initOcean(atmoContainer); 
-              break;
-            case 'fire':   
-              this.initFire(atmoContainer); 
-              break;
-          }
-        }
+      // ✅ 关键修改：激活阅读模式时，确保氛围动画正常播放（且图层在阅读模式之上）
+      // 这里的 setAtmosphere 会重置容器并重新生成粒子，确保粒子可见
+      if (this.currentAtmosphere) {
+        this.setAtmosphere(this.currentAtmosphere);
       }
 
       this.readerModeActive = true;
-      console.log('[Level 2] 阅读模式已激活，继承氛围:', currentAtmosphereType || '无');
+      console.log('[Level 2] 阅读模式已激活，继承氛围:', this.currentAtmosphere || '无');
 
       // **[新增]** 通知 background.js 阅读模式已激活
       chrome.runtime.sendMessage({
@@ -903,65 +876,131 @@
 
     /**
      * 模拟 Readability 提取页面正文内容
+     * 优化：强力清洗 DOM，移除干扰样式，解决排版错乱
      * @returns {{title: string, content: string, textContent: string}|null}
      */
     extractContent() {
-      // 这里模拟 @mozilla/readability 的提取逻辑
-      // 实际项目中应导入 Readability 库
-
       try {
-        // 获取标题
+        // 1. 获取标题
         const title = document.querySelector('h1')?.textContent
           || document.querySelector('title')?.textContent
           || '未知标题';
 
-        // 尝试找到主要内容区域
+        // 2. 智能查找正文容器
+        // 优先级：显式文章标签 > 特定类名 > 启发式查找
         const contentSelectors = [
           'article',
           '[role="main"]',
-          'main',
-          '.post-content',
           '.article-content',
+          '.post-content',
           '.entry-content',
-          '.content',
-          '#content'
+          '#content',
+          '.main-content',
+          'main'
         ];
 
         let contentElement = null;
         for (const selector of contentSelectors) {
-          contentElement = document.querySelector(selector);
+          // 查找该选择器下的元素，并检查是否包含足够多的 p 标签 (至少3个)，避免选中空的容器或导航栏
+          const candidates = document.querySelectorAll(selector);
+          for (const candidate of candidates) {
+             if (candidate.querySelectorAll('p').length > 3) {
+               contentElement = candidate;
+               break;
+             }
+          }
           if (contentElement) break;
         }
 
-        // 如果找不到特定内容区域，使用 body
+        // 3. 如果没找到合适的容器，执行兜底策略：提取所有 p 标签
+        // 针对门户网站首页或非标准页面
         if (!contentElement) {
-          contentElement = document.body;
+          console.log('[Reader] 未找到明确的正文容器，使用兜底策略');
+          // 创建一个虚拟容器
+          contentElement = document.createElement('div');
+          // 获取页面所有 p 标签，过滤掉太短的（可能是导航或页脚）
+          const allParagraphs = document.querySelectorAll('body p');
+          let validParagraphCount = 0;
+          
+          allParagraphs.forEach(p => {
+            // 简单的启发式：段落长度大于 20 字符，或者是图片
+            if (p.textContent.trim().length > 20 || p.querySelector('img')) {
+              contentElement.appendChild(p.cloneNode(true));
+              validParagraphCount++;
+            }
+          });
+          
+          if (validParagraphCount < 3) {
+             console.warn('[Reader] 有效段落太少，可能不是文章页');
+          }
+        } else {
+          // 克隆找到的容器，避免修改原页面
+          contentElement = contentElement.cloneNode(true);
         }
 
-        // 克隆内容以避免修改原页面
-        const clonedContent = contentElement.cloneNode(true);
-
-        // 🐛 Bug 修复：先排除 MindFlow 自己的插件元素，防止被删除
-        clonedContent.querySelectorAll('[id^="mindflow-"], [class^="mindflow-"]').forEach(el => el.remove());
-
-        // 移除不需要的元素
+        // 4. 清洗 DOM (核心修复步骤)
+        // 移除无关元素
         const removeSelectors = [
-          'script', 'style', 'nav', 'header', 'footer',
-          'aside', '.sidebar', '.ad', '.advertisement',
-          '.social-share', '.comments', 'iframe'
+          'script', 'style', 'noscript', 'iframe', 'svg', 'button', 'input', 'textarea', 'select', 'form',
+          'nav', 'header', 'footer', 'aside', 
+          '.sidebar', '.ad', '.advertisement', '.social-share', '.comments', '.related-posts',
+          '[id*="comment"]', '[class*="comment"]', '[id*="share"]', '[class*="share"]'
         ];
+        
+        // 注意：先移除 MindFlow 自己的元素
+        contentElement.querySelectorAll('[id^="mindflow-"], [class^="mindflow-"]').forEach(el => el.remove());
 
         removeSelectors.forEach(selector => {
-          clonedContent.querySelectorAll(selector).forEach(el => el.remove());
+          contentElement.querySelectorAll(selector).forEach(el => el.remove());
         });
 
-        const content = clonedContent.innerHTML;
-        const textContent = clonedContent.textContent || '';
+        // 5. 强力去样式 (Strip Attributes)
+        // 递归遍历所有子节点，移除 class, id, style 等可能导致样式冲突的属性
+        const stripAttributes = (node) => {
+          if (node.nodeType === 1) { // 元素节点
+            // 白名单属性，其他全部移除
+            const allowedAttrs = ['src', 'href', 'alt', 'title', 'width', 'height', 'datetime'];
+            
+            // 获取所有属性名
+            const attrs = Array.from(node.attributes).map(a => a.name);
+            
+            attrs.forEach(attrName => {
+              if (!allowedAttrs.includes(attrName)) {
+                node.removeAttribute(attrName);
+              }
+            });
+            
+            // 特殊处理：移除空的 div 或 span (可选，为了更干净)
+            // 但要保留包含 img 的 div
+            if ((node.tagName === 'DIV' || node.tagName === 'SPAN') && 
+                node.innerHTML.trim() === '' && !node.querySelector('img')) {
+              // node.remove(); // 遍历中删除可能会有问题，这里暂不删除，交给 CSS 处理空元素
+            }
+            
+            // 递归处理子节点
+            let child = node.firstChild;
+            while (child) {
+              const next = child.nextSibling;
+              stripAttributes(child);
+              child = next;
+            }
+          }
+        };
+        
+        stripAttributes(contentElement);
+
+        const content = contentElement.innerHTML;
+        const textContent = contentElement.textContent || '';
+
+        // 检查提取结果是否为空
+        if (content.trim().length === 0) {
+           throw new Error('提取内容为空');
+        }
 
         return {
           title: title.trim(),
           content: content,
-          textContent: textContent.trim().slice(0, 5000) // 限制长度用于 AI 摘要
+          textContent: textContent.trim().slice(0, 5000)
         };
 
       } catch (error) {

@@ -98,7 +98,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 2147483641; /* 比护眼层高一层！确保粒子是白色的！*/
+  /* ✅ 关键修改：层级高于阅读模式 (Reader Mode: ...47)，确保粒子在阅读模式之上 */
+  z-index: 2147483648; 
   pointer-events: none;
   overflow: hidden;
   /* 增加一个全局的模糊过渡，让所有粒子不那么生硬 */
@@ -252,6 +253,19 @@
 
   /* 确保覆盖层在最上层 */
   isolation: isolate;
+}
+
+/* ✅ 新增：阅读模式继承氛围背景色 */
+.mindflow-reader-overlay.paper-tint-forest {
+  background: #cce8cf !important;
+}
+
+.mindflow-reader-overlay.paper-tint-ocean {
+  background: #e0f2fe !important;
+}
+
+.mindflow-reader-overlay.paper-tint-fire {
+  background: #ffedd5 !important;
 }
 
 @keyframes mindflow-fade-in {

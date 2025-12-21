@@ -1213,53 +1213,59 @@
         </div>
         
         <div class="mindflow-sidebar-content">
+          <!-- DSI 仪表盘：圆环进度条 + 大数字 -->
           <div class="mindflow-dsi-display">
             <div class="mindflow-dsi-label">数字压力指数</div>
-            <div class="mindflow-dsi-value" id="mindflow-dsi-value">0</div>
-            <div class="mindflow-dsi-bar">
-              <div class="mindflow-dsi-bar-fill" id="mindflow-dsi-bar-fill" style="width: 0%"></div>
+            <div class="mindflow-dsi-ring-container">
+              <svg class="mindflow-dsi-ring" viewBox="0 0 120 120">
+                <circle class="mindflow-dsi-ring-bg" cx="60" cy="60" r="54" />
+                <circle class="mindflow-dsi-ring-progress" id="mindflow-dsi-ring-progress" cx="60" cy="60" r="54" />
+              </svg>
+              <div class="mindflow-dsi-number" id="mindflow-dsi-value">0</div>
             </div>
-            <div class="mindflow-dsi-status" id="mindflow-dsi-status">😊 状态良好</div>
+            <div class="mindflow-dsi-status-badge" id="mindflow-dsi-status">😊 状态良好</div>
           </div>
           
+          <!-- 干预级别：垂直时间轴 -->
           <div class="mindflow-level-indicator">
             <div class="mindflow-level-title">当前干预级别</div>
-            <div class="mindflow-levels">
-              <div class="mindflow-level-item" data-level="0" id="mindflow-level-0">
-                <span class="mindflow-level-dot"></span>
-                <span>正常浏览</span>
-              </div>
-              <div class="mindflow-level-item" data-level="1" id="mindflow-level-1">
-                <span class="mindflow-level-dot"></span>
-                <span>柔和模式</span>
-              </div>
-              <div class="mindflow-level-item" data-level="2" id="mindflow-level-2">
-                <span class="mindflow-level-dot"></span>
-                <span>阅读模式</span>
-              </div>
-              <div class="mindflow-level-item" data-level="3" id="mindflow-level-3">
-                <span class="mindflow-level-dot"></span>
-                <span>视觉疗愈</span>
-              </div>
-            </div>
+            <ul class="mindflow-level-list">
+              <li class="mindflow-level-item" data-level="0" id="mindflow-level-0">
+                <span class="mindflow-level-text">正常浏览</span>
+              </li>
+              <li class="mindflow-level-item" data-level="1" id="mindflow-level-1">
+                <span class="mindflow-level-text">柔和模式</span>
+              </li>
+              <li class="mindflow-level-item" data-level="2" id="mindflow-level-2">
+                <span class="mindflow-level-text">阅读模式</span>
+              </li>
+              <li class="mindflow-level-item" data-level="3" id="mindflow-level-3">
+                <span class="mindflow-level-text">视觉疗愈</span>
+              </li>
+            </ul>
           </div>
           
+          <!-- 信息卡片：可折叠 -->
           <div class="mindflow-info-card">
-            <div class="mindflow-info-title">💡 DSI 如何变化？</div>
-            <div class="mindflow-info-content">
-              <div class="mindflow-info-item">
+            <div class="mindflow-info-header" id="mindflow-info-toggle">
+              <span class="mindflow-info-icon">💡</span>
+              <span class="mindflow-info-title">DSI 如何变化？</span>
+              <span class="mindflow-info-arrow">▼</span>
+            </div>
+            <div class="mindflow-info-content" id="mindflow-info-content">
+              <div class="mindflow-info-row">
                 <span class="mindflow-info-icon">📈</span>
                 <span>快速滚动 (>1500px/s) → +5</span>
               </div>
-              <div class="mindflow-info-item">
+              <div class="mindflow-info-row">
                 <span class="mindflow-info-icon">🖱️</span>
                 <span>高频点击 (>3次/s) → +8</span>
               </div>
-              <div class="mindflow-info-item">
+              <div class="mindflow-info-row">
                 <span class="mindflow-info-icon">⏱️</span>
                 <span>持续浏览 → +0.5/秒</span>
               </div>
-              <div class="mindflow-info-item">
+              <div class="mindflow-info-row">
                 <span class="mindflow-info-icon">😴</span>
                 <span>静止10秒后 → -2/秒</span>
               </div>
@@ -1319,6 +1325,30 @@
       
       // 白噪音功能
       this.initWhiteNoise();
+      
+      // 信息卡片折叠功能
+      const infoToggle = document.getElementById('mindflow-info-toggle');
+      const infoContent = document.getElementById('mindflow-info-content');
+      if (infoToggle && infoContent) {
+        let isExpanded = false;
+        infoToggle.addEventListener('click', () => {
+          isExpanded = !isExpanded;
+          if (isExpanded) {
+            infoContent.style.maxHeight = infoContent.scrollHeight + 'px';
+            infoContent.classList.add('active');
+          } else {
+            infoContent.style.maxHeight = '0';
+            infoContent.classList.remove('active');
+          }
+          const arrow = infoToggle.querySelector('.mindflow-info-arrow');
+          if (arrow) {
+            arrow.textContent = isExpanded ? '▲' : '▼';
+            arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(0deg)';
+          }
+        });
+        // 默认折叠
+        infoContent.style.maxHeight = '0';
+      }
       
       // 默认不显示面板（用户点击悬浮按钮打开）
     }
@@ -1558,19 +1588,48 @@
           this.dsi = response.data.dsi || 0;
           this.level = response.data.level || 0;
           
+          // 根据 DSI 值计算正确的级别（修复逻辑漏洞）
+          let calculatedLevel = 0;
+          if (this.dsi >= 80) {
+            calculatedLevel = 3;  // 高度压力 - 视觉疗愈
+          } else if (this.dsi >= 60) {
+            calculatedLevel = 2;  // 中度压力 - 阅读模式
+          } else if (this.dsi >= 30) {
+            calculatedLevel = 1;  // 轻度压力 - 柔和模式
+          } else {
+            calculatedLevel = 0;  // 状态良好 - 正常浏览
+          }
+          
+          // 使用计算出的级别，而不是 this.level（可能未同步）
+          const displayLevel = calculatedLevel;
+          
           // 更新显示
           const dsiValue = document.getElementById('mindflow-dsi-value');
-          const dsiBarFill = document.getElementById('mindflow-dsi-bar-fill');
+          const dsiRingProgress = document.getElementById('mindflow-dsi-ring-progress');
           const dsiStatus = document.getElementById('mindflow-dsi-status');
+          const dsiRingContainer = document.querySelector('.mindflow-dsi-ring-container');
           
           if (dsiValue) {
             dsiValue.textContent = Math.round(this.dsi);
-            dsiValue.className = 'mindflow-dsi-value mindflow-dsi-level-' + this.level;
+            dsiValue.className = 'mindflow-dsi-number mindflow-dsi-level-' + displayLevel;
           }
           
-          if (dsiBarFill) {
-            dsiBarFill.style.width = `${this.dsi}%`;
-            dsiBarFill.className = 'mindflow-dsi-bar-fill mindflow-dsi-level-' + this.level;
+          // 更新圆环进度条 - 使用 conic-gradient 实现填充效果
+          if (dsiRingContainer) {
+            const progress = this.dsi / 100;
+            const levelColors = {
+              0: '#2D6A4F',  // 森林绿
+              1: '#95D5B2',  // 鼠尾草绿
+              2: '#B07D62',  // 大地棕
+              3: '#C62828'   // 红色（极度过载）
+            };
+            const bgColor = '#E0E0E0';
+            const fillColor = levelColors[displayLevel] || levelColors[0];
+            
+            // 使用 conic-gradient 创建填充圆环（从顶部开始，顺时针）
+            const percentage = progress * 100;
+            dsiRingContainer.style.background = `conic-gradient(from 0deg, ${fillColor} 0% ${percentage}%, ${bgColor} ${percentage}% 100%)`;
+            dsiRingContainer.className = 'mindflow-dsi-ring-container mindflow-dsi-level-' + displayLevel;
           }
           
           if (dsiStatus) {
@@ -1578,17 +1637,17 @@
               '😊 状态良好',
               '😐 轻度压力',
               '😰 中度压力',
-              '😫 高度压力'
+              '😫 极度过载'
             ];
-            dsiStatus.textContent = statusTexts[this.level];
-            dsiStatus.className = 'mindflow-dsi-status mindflow-dsi-level-' + this.level;
+            dsiStatus.textContent = statusTexts[displayLevel];
+            dsiStatus.className = 'mindflow-dsi-status-badge mindflow-dsi-level-' + displayLevel;
           }
           
-          // 更新级别指示器
+          // 更新级别指示器 - 使用计算出的级别
           for (let i = 0; i <= 3; i++) {
             const levelItem = document.getElementById(`mindflow-level-${i}`);
             if (levelItem) {
-              if (i === this.level) {
+              if (i === displayLevel) {
                 levelItem.classList.add('active');
               } else {
                 levelItem.classList.remove('active');

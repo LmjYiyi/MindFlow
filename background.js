@@ -73,7 +73,7 @@ const DSI_CONFIG = {
   CLICK_CHAOTIC_INCREMENT: 8,        // [下调] 从 15 改为 8
   NATURAL_INCREMENT: 0.0,             // 默认无序的自然累积设为 0
   FLOW_RECOVERY: 1.0,                 // [微调] 心流状态下的主动恢复值
-  
+
   // [新增] 活跃恢复基准：正常浏览时的回血速度
   ACTIVE_RECOVERY_BASE: 0.5,         // 正常浏览时的恢复速度（每秒 -0.5）
 
@@ -87,13 +87,13 @@ const DSI_CONFIG = {
   IDLE_THRESHOLD: 5000,               // 静止阈值同步调整
   DEEP_READING_THRESHOLD: 10000,      // 10秒静止即视为深度阅读
   READER_MODE_DECAY_RATE: 1.0,        // **[新增]** 阅读模式下的每秒衰减值
-  
+
   // 指数衰减模型（药物动力学/半衰期模型）
   DECAY_BASE_RATE: 0.6,               // **[修改]** 自然衰减基础速率 (每秒 -0.6)
   DECAY_FACTOR: 0.05,                 // 指数衰减因子 (DSI越大减得越快)
   THERAPY_BONUS: 3.0,                 // 疗愈模式下的额外衰减倍率
   MIN_BASELINE: 0,                    // 允许归零
-  
+
   // 页面类型衰减系数（白名单/黑名单机制）
   DECAY_MULTIPLIERS: {
     'video': 0.5,                     // 视频网站：被动娱乐，衰减减半
@@ -275,13 +275,13 @@ function calculateDSIDelta(state) {
     // console.log(`[DSI] 🧘 疗愈恢复: ${therapyDecay.toFixed(2)}`);
     return therapyDecay; // 直接返回，不计算其他
   }
-  
+
   // ===== 2. 阅读模式 (优先级次之，主动恢复) =====
   if (state.isReaderModeActive) {
     // 【修改点】：阅读模式下的 DSI 策略
     const READER_MODE_TARGET_MIN = 45; // 阅读模式下的 DSI 目标下限
     const READER_MODE_TARGET_MAX = 55; // 阅读模式下的 DSI 目标上限
-    
+
     let baseDecay = DSI_CONFIG.DECAY_BASE_RATE * 0.3; // 衰减率大幅降低
     const pageDecayMultiplier = DSI_CONFIG.DECAY_MULTIPLIERS[state.pageType] || 1.0;
     baseDecay *= pageDecayMultiplier;
@@ -289,12 +289,12 @@ function calculateDSIDelta(state) {
     // 1. 如果 DSI 已经处于目标区间，则视为稳定
     if (state.dsi >= READER_MODE_TARGET_MIN && state.dsi <= READER_MODE_TARGET_MAX) {
       // DSI 稳定，不增不减
-      return 0; 
-    } 
+      return 0;
+    }
     // 2. 如果 DSI 高于目标区间，缓慢衰减
     else if (state.dsi > READER_MODE_TARGET_MAX) {
       return -baseDecay;
-    } 
+    }
     // 3. 如果 DSI 低于目标区间，稍微增加，拉回目标区间（防止 DSI 过低）
     else { // state.dsi < READER_MODE_TARGET_MIN
       // 允许非常微弱的 DSI 增长，将其拉回目标区间
@@ -307,7 +307,7 @@ function calculateDSIDelta(state) {
 
   // ===== 3. 活跃状态 vs 非活跃状态 判定 =====
   // 修正：不再使用早期 return，而是统一计算出 delta，最后统一应用 Level 1 地板逻辑
-  
+
   if (isMeaningfulActivity) {
     // --- 活跃状态 (Active) ---
     // 退出静止状态
@@ -333,38 +333,38 @@ function calculateDSIDelta(state) {
     else {
       // 🚀 核心修正点：大幅提高正常浏览时的"回血"能力
       // 即使不在心流区，只要行为有序，就应该允许 DSI 下降
-      
+
       let activeRecovery = DSI_CONFIG.ACTIVE_RECOVERY_BASE || 0.5;
 
       // 如果 DSI 很高 (>70)，加大恢复力度，帮助用户回归
       if (state.dsi > 70) {
-        activeRecovery *= 1.5; 
+        activeRecovery *= 1.5;
       }
 
       // 心流区保护：在心流区内，恢复速度适中
       if (inFlowZone) {
-        delta = -DSI_CONFIG.FLOW_RECOVERY; 
+        delta = -DSI_CONFIG.FLOW_RECOVERY;
       } else {
         // 在心流区外（通常是过高或过低），给予明确的恢复方向
         // 这里假设大部分情况是过高，所以给予负值
-        delta = -activeRecovery; 
+        delta = -activeRecovery;
       }
 
       // 如果是快速但有序的滚动 (介于 Threshold 和 Chaotic 之间)，不增不减，或者微增
       if (state.scrollSpeed > DSI_CONFIG.SCROLL_SPEED_THRESHOLD && state.scrollSpeed <= DSI_CONFIG.SCROLL_SPEED_CHAOTIC) {
-         delta = 0.5 * contextCoeff; // 轻微压力，而不是之前的 +4
+        delta = 0.5 * contextCoeff; // 轻微压力，而不是之前的 +4
       }
     }
   } else {
     // --- 非活跃状态 (Idle) ---
-    
+
     // A. 潜伏期 (0 - DECAY_DELAY)
     if (timeSinceLastActivity < DSI_CONFIG.DECAY_DELAY) {
       delta = 0; // 缓冲期，DSI 不变
     }
     // B. 深度阅读 (文档/新闻页 > 深度阅读阈值)
-    else if ((state.pageType === 'document' || state.pageType === 'news') && 
-        timeSinceLastActivity > DSI_CONFIG.DEEP_READING_THRESHOLD) {
+    else if ((state.pageType === 'document' || state.pageType === 'news') &&
+      timeSinceLastActivity > DSI_CONFIG.DEEP_READING_THRESHOLD) {
       if (!state.isDeepReading) {
         state.isDeepReading = true;
         console.log('[DSI] 📖 深度阅读中...');
@@ -376,19 +376,19 @@ function calculateDSIDelta(state) {
       let decay = DSI_CONFIG.DECAY_BASE_RATE + (state.dsi * DSI_CONFIG.DECAY_FACTOR);
       const pageDecayMultiplier = DSI_CONFIG.DECAY_MULTIPLIERS[state.pageType] || 1.0;
       decay *= pageDecayMultiplier;
-      
+
       // 心流区衰减减半
       if (isInFlowZone(state.dsi)) {
         decay *= 0.5;
       }
-      
+
       // 确保至少有微量衰减
       if (decay < 0.1 && decay > 0 && state.dsi > 0) decay = 0.1;
-      
+
       if (!state.isIdle) {
         state.isIdle = true;
       }
-      
+
       delta = -decay;
     }
   }
@@ -398,7 +398,7 @@ function calculateDSIDelta(state) {
   // 只要处于 Level 1，且 DSI 将跌破地板 (25)，就强制拦截。
   if (state.currentLevel === 1 && delta < 0) {
     const LEVEL_1_FLOOR = 25; // 地板值 (高于退出阈值 20)
-    
+
     // 如果当前的 DSI 加上变化量 delta 会低于地板
     if (state.dsi + delta < LEVEL_1_FLOOR) {
       // 如果当前 DSI 本身就在地板之上，允许它降落到地板
@@ -441,7 +441,7 @@ async function updateDSI(tabId) {
   // 如果疗愈模式正在进行中，强制锁定 Level 为 3
   // 只有当 isTherapyActive 为 false 时（倒计时结束或用户跳过），才允许降级
   if (state.isTherapyActive) {
-    newLevel = 3; 
+    newLevel = 3;
     // 即使 DSI 已经降到了 0，只要动画没播完，这里依然保持 3
     // 这样就不会触发 triggerIntervention 去销毁动画了
     // 如果 currentLevel 已经是 3，就不需要再发送干预指令
@@ -457,7 +457,7 @@ async function updateDSI(tabId) {
     // 注意：这里不处理 suggestion，因为疗愈模式不需要建议
     return; // 直接返回，不执行后续逻辑
   }
-  
+
   // 2. 次级优先：阅读模式锁定 (Level 2)
   // ✅ [核心修复]：只要阅读模式是激活状态，强制锁定 Level 至少为 2
   // 即使 DSI 降到了 45 (心流区)，也不允许降级到 Level 1/0
@@ -468,7 +468,7 @@ async function updateDSI(tabId) {
     } else {
       newLevel = 2; // 🔒 强制锁定在 Level 2
     }
-  } 
+  }
   // 3. 标准阈值判断逻辑 (仅在非阅读模式且非疗愈模式下执行)
   else {
     // Level 3: 视觉疗愈（高阈值，用户可跳过）
@@ -489,7 +489,7 @@ async function updateDSI(tabId) {
       // 【修改点】：Level 1 的判断逻辑优化
       // 如果当前已经是 Level 1，则使用更低的"退出阈值"（例如 20）
       // 如果当前不是 Level 1，则使用正常的"进入阈值"（例如 35）
-      const level1ExitThreshold = 20; 
+      const level1ExitThreshold = 20;
       const isAlreadyLevel1 = state.currentLevel === 1;
 
       if (state.dsi > DSI_CONFIG.LEVEL_1_THRESHOLD) {
@@ -653,7 +653,7 @@ function handleBehaviorData(tabId, data) {
  */
 function handleTherapyCompletion(tabId) {
   const state = getTabState(tabId);
-  
+
   // 【修复】确保 isTherapyActive 被正确置为 false
   state.isTherapyActive = false;
   console.log(`[DSI] 🧘 疗愈完成，isTherapyActive 已设置为 false`);
@@ -686,7 +686,7 @@ function handleTherapyCompletion(tabId) {
  */
 async function handleReaderModeExit(tabId) {
   const state = getTabState(tabId);
-  
+
   // 1. 标记阅读模式结束
   state.isReaderModeActive = false;
   console.log(`[DSI] 📖 用户主动退出阅读模式`);
@@ -709,13 +709,13 @@ async function handleReaderModeExit(tabId) {
 
   // 4. 重新发送干预指令，确保 UI 更新
   await triggerIntervention(tabId, state.currentLevel, state.dsi, null);
-  
+
   // 5. 保存状态
   await chrome.storage.local.set({
     [`dsi_${tabId}`]: state.dsi,
     [`level_${tabId}`]: state.currentLevel
   });
-  
+
   // 6. 更新图标
   await chrome.action.setBadgeText({ text: Math.round(state.dsi).toString(), tabId: tabId });
   const colors = { 0: '#2D6A4F', 1: '#95D5B2', 2: '#B07D62', 3: '#8B4513' };
@@ -812,7 +812,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // ============================================
-// LLM API 调用（DeepSeek）
+// LLM API 调用 (Google Gemini)
 // ============================================
 
 /**
@@ -906,10 +906,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return;
           }
 
-          console.log('[Background] 开始调用 DeepSeek API，文本长度:', message.payload.text.length);
-          const summary = await callDeepSeekAPI(message.payload.text);
+          console.log('[Background] 开始调用 Gemini API，文本长度:', message.payload.text.length);
+          const summary = await callGeminiAPI(message.payload.text);
           console.log('[Background] API 调用成功，摘要长度:', summary.length);
-          
+
           sendResponseSafe({ success: true, data: summary });
         } catch (err) {
           console.error('[Background] API 调用失败:', err);
@@ -963,7 +963,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               readerState.dsi = DSI_CONFIG.LEVEL_2_THRESHOLD + 5; // 略高于阈值
               console.log(`[DSI] 📖 阅读模式开启，DSI 提升至 ${readerState.dsi.toFixed(1)}`);
               // 触发一次干预检查，确保 Level 2 被正确设置
-              await triggerIntervention(tabId, 2, readerState.dsi, 'strong'); 
+              await triggerIntervention(tabId, 2, readerState.dsi, 'strong');
             }
           }
           console.log(`[DSI] 📖 阅读模式状态更新: ${readerState.isReaderModeActive ? '开启' : '关闭'}`);
@@ -991,90 +991,77 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ============================================
-// LLM API 调用（DeepSeek）
+// LLM API 调用 (Google Gemini)
 // ============================================
-
 /**
- * 调用 DeepSeek API 生成文章摘要
+ * 调用 Google Gemini API 生成文章摘要
  * @param {string} text - 文章正文
  * @returns {Promise<string>} - 生成的摘要
  */
-async function callDeepSeekAPI(text) {
-  const API_KEY = 'sk-6fd786ed95a740d692709eb73fd049c5';
-  const url = 'https://api.deepseek.com/v1/chat/completions';
+async function callGeminiAPI(text) {
+  const API_KEY = 'AIzaSyDJgX9CF3J-bD_qsiB9NfWY8x5Pl5g7qt8';
+  const MODEL = 'gemini-2.5-flash';
+  // 注意：Gemini 接口 URL 包含 API Key
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
   // 检查输入文本
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     throw new Error('文章内容为空，无法生成摘要');
   }
 
-  // 限制文本长度，避免超过 token 限制
+  // 限制文本长度，对齐之前的逻辑
   const truncatedText = text.trim().slice(0, 3000);
-  
+
   if (truncatedText.length < 50) {
     throw new Error('文章内容过短，无法生成摘要');
   }
+
+  const prompt = `你是一个专业的文章摘要助手。请用简洁优雅的中文为用户生成文章的核心要点摘要。要求：1. 提炼3-5个关键观点；2. 每个观点用一句话概括；3. 使用emoji增强可读性；4. 总字数控制在200字以内。\n\n内容：\n\n${truncatedText}`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的文章摘要助手。请用简洁优雅的中文为用户生成文章的核心要点摘要。要求：1. 提炼3-5个关键观点；2. 每个观点用一句话概括；3. 使用emoji增强可读性；4. 总字数控制在200字以内。'
-          },
-          {
-            role: 'user',
-            content: `请为以下文章生成摘要：\n\n${truncatedText}`
-          }
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-        stream: false
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
       })
     });
 
     if (!response.ok) {
-      let errorMessage = `API 请求失败 (${response.status})`;
+      let errorMessage = `Gemini API 请求失败 (${response.status})`;
       try {
         const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorData.error?.code || errorMessage;
-        console.error('[DeepSeek API] 错误详情:', errorData);
+        errorMessage = errorData.error?.message || errorData.error?.status || errorMessage;
+        console.error('[Gemini API] 错误详情:', errorData);
       } catch (e) {
-        // 如果无法解析错误响应，使用状态码
-        const statusText = response.statusText || '未知错误';
-        errorMessage = `API 请求失败 (${response.status}): ${statusText}`;
+        errorMessage = `Gemini API 请求失败 (${response.status}): ${response.statusText}`;
       }
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
-    
-    // 检查响应数据格式
-    if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      throw new Error('API 返回数据格式异常');
-    }
 
-    const summary = data.choices[0]?.message?.content;
-    
+    // 解析 Gemini 响应格式
+    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
     if (!summary || summary.trim().length === 0) {
-      throw new Error('生成的摘要为空');
+      console.error('[Gemini API] 响应数据结构:', data);
+      throw new Error('Gemini 未能生成有效的摘要');
     }
 
-    console.log('[DeepSeek API] 摘要生成成功，长度:', summary.length);
+    console.log('[Gemini API] 摘要生成成功，长度:', summary.length);
     return summary.trim();
 
   } catch (error) {
-    console.error('[DeepSeek API] 调用失败:', error);
-    // 如果是网络错误，提供更友好的错误信息
+    console.error('[Gemini API] 调用失败:', error);
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('网络连接失败，请检查网络设置');
+      throw new Error('无法连接到 Google API，请检查网络（可能需要代理）');
     }
     throw error;
   }

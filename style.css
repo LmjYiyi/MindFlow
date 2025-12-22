@@ -81,8 +81,10 @@
   height: 100vh;
   z-index: 2147483640;
   pointer-events: none;
-  mix-blend-mode: multiply; /* 正片叠底，只负责变色 */
-  background-color: #fdf6e3; /* 默认羊皮纸 */
+  mix-blend-mode: multiply;
+  /* 正片叠底，只负责变色 */
+  background-color: #fdf6e3;
+  /* 默认羊皮纸 */
   opacity: 0;
   transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
 }
@@ -99,7 +101,7 @@
   width: 100vw;
   height: 100vh;
   /* ✅ 关键修改：层级高于阅读模式 (Reader Mode: ...47)，确保粒子在阅读模式之上 */
-  z-index: 2147483648; 
+  z-index: 2147483648;
   pointer-events: none;
   overflow: hidden;
   /* 增加一个全局的模糊过渡，让所有粒子不那么生硬 */
@@ -134,61 +136,102 @@
 
 /* --- 🌲 森林 (Forest) --- */
 /* 底色：豆沙绿 */
-.paper-tint-forest { 
-  background-color: #cce8cf !important; 
+.paper-tint-forest {
+  background-color: #cce8cf !important;
 }
 
 /* 树叶 - 慢速摇曳 */
 .mf-leaf {
   font-size: 24px;
-  opacity: 0.9; /* 提高不透明度 */
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); /* 加阴影更有立体感 */
+  opacity: 0.9;
+  /* 提高不透明度 */
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.1));
+  /* 加阴影更有立体感 */
   animation: mf-leaf-fall ease-in-out infinite;
 }
+
 @keyframes mf-leaf-fall {
-  0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
-  20% { opacity: 0.8; }
-  50% { transform: translateY(50vh) translateX(30px) rotate(180deg); } /* 中间飘一下，形成S形 */
-  100% { transform: translateY(110vh) translateX(-20px) rotate(360deg); opacity: 0; }
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: translateY(50vh) translateX(30px) rotate(180deg);
+  }
+
+  /* 中间飘一下，形成S形 */
+  100% {
+    transform: translateY(110vh) translateX(-20px) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 /* --- 🌊 海浪 (Ocean) - 修复：去除怪异波浪，增强气泡 --- */
 /* 底色：海盐蓝 */
-.paper-tint-ocean { 
-  background-color: #e0f2fe !important; 
+.paper-tint-ocean {
+  background-color: #e0f2fe !important;
 }
 
 /* 背景：改为深海呼吸感，而不是移动的波浪图形 */
-.atmo-effect-ocean { 
+.atmo-effect-ocean {
   background: linear-gradient(to top, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
   animation: mf-ocean-breathe 8s ease-in-out infinite;
 }
+
 @keyframes mf-ocean-breathe {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; } /* 模拟海水的潮汐感 */
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  /* 模拟海水的潮汐感 */
 }
 
 /* 气泡：更亮、更慢、边缘柔化 */
 .mf-bubble {
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
-  border: none; /* 去掉硬边框 */
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); /* 强发光 */
+  border: none;
+  /* 去掉硬边框 */
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  /* 强发光 */
   border-radius: 50%;
   /* 关键：混合模式让气泡在深色背景更亮 */
   mix-blend-mode: overlay;
   animation: mf-bubble-rise linear infinite;
 }
+
 @keyframes mf-bubble-rise {
-  0% { transform: translateY(110vh) scale(0.5); opacity: 0; }
-  20% { opacity: 0.6; }
-  100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+  0% {
+    transform: translateY(110vh) scale(0.5);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translateY(-10vh) scale(1.2);
+    opacity: 0;
+  }
 }
 
 /* --- 🔥 火焰 (Fire) --- */
 /* 底色：暖杏色 */
-.paper-tint-fire { 
-  background-color: #ffedd5 !important; 
+.paper-tint-fire {
+  background-color: #ffedd5 !important;
 }
+
 .atmo-effect-fire {
   background: radial-gradient(circle at 50% 120%, rgba(255, 100, 0, 0.2), transparent 60%);
 }
@@ -204,24 +247,46 @@
   filter: blur(60px);
   animation: mf-pulse-glow 4s ease-in-out infinite;
 }
+
 @keyframes mf-pulse-glow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.1); }
+
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
 }
 
 /* 火星/余烬：改为全屏漂浮 */
 .mf-spark {
-  background-color: #fdba74; /* 浅橙色，像灰烬 */
+  background-color: #fdba74;
+  /* 浅橙色，像灰烬 */
   box-shadow: 0 0 4px #fb923c;
   border-radius: 50%;
   opacity: 0.6;
   animation: mf-ember-float ease-out infinite;
 }
+
 /* 飘动动画：加入左右摇摆 */
 @keyframes mf-ember-float {
-  0% { transform: translateY(110vh) translateX(0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(-10vh) translateX(var(--sway)); opacity: 0; }
+  0% {
+    transform: translateY(110vh) translateX(0);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-10vh) translateX(var(--sway));
+    opacity: 0;
+  }
 }
 
 /* ❌ 风声模式已删除 */
@@ -1910,7 +1975,8 @@
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
-  background: var(--mindflow-earth); /* 使用大地色区分调试 */
+  background: var(--mindflow-earth);
+  /* 使用大地色区分调试 */
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -1943,4 +2009,392 @@
 .mindflow-debug-chip:hover {
   background: var(--mindflow-primary);
   color: white;
+}
+
+/* ============================================
+   精简版侧边栏 (Compact Sidebar)
+   ============================================ */
+
+.mindflow-sidebar-compact {
+  width: 280px;
+}
+
+.mindflow-sidebar-compact .mindflow-sidebar-content {
+  padding: 20px 15px;
+}
+
+/* ============================================
+   数字人头像 (Digital Avatar)
+   替代原浮动按钮，6种可爱状态
+   ============================================ */
+
+.digital-avatar {
+  position: fixed;
+  right: 20px;
+  bottom: 100px;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  z-index: 999996;
+  transition: transform 0.3s ease;
+  filter: drop-shadow(0 4px 12px rgba(45, 106, 79, 0.3));
+}
+
+.digital-avatar:hover {
+  transform: scale(1.1);
+}
+
+.avatar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 数字人身体 */
+.avatar-body {
+  transition: fill 0.5s ease;
+}
+
+/* 头顶嫩芽摇曳 */
+.avatar-sprout {
+  transform-origin: 30px 16px;
+  animation: sprout-sway 3s ease-in-out infinite;
+}
+
+@keyframes sprout-sway {
+
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+/* 风线动画 */
+.wind-line {
+  opacity: 0.6;
+  animation: wind-drift 2s ease-in-out infinite;
+}
+
+@keyframes wind-drift {
+
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: translateX(5px);
+    opacity: 0.8;
+  }
+}
+
+/* 鼻涕泡泡动画 */
+.snot-bubble {
+  transform-origin: center;
+  animation: snot-bubble 2s ease-in-out infinite;
+}
+
+@keyframes snot-bubble {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.9;
+  }
+}
+
+/* 发光粒子动画 */
+.glow-particle {
+  animation: glow-float 3s ease-in-out infinite;
+}
+
+@keyframes glow-float {
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+}
+
+/* --- 状态动画 --- */
+
+/* 森之静谧：漂浮 */
+.avatar-zen {
+  animation: avatar-float 3s ease-in-out infinite;
+}
+
+@keyframes avatar-float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* 微风扰动：静态，斜眼 */
+.avatar-distract {
+  animation: none;
+}
+
+/* 焦糖过载：抖动 */
+.avatar-burnout {
+  animation: avatar-shake 0.5s infinite;
+}
+
+@keyframes avatar-shake {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  10% {
+    transform: translate(-2px, -1px);
+  }
+
+  20% {
+    transform: translate(2px, 1px);
+  }
+
+  30% {
+    transform: translate(-1px, 2px);
+  }
+
+  40% {
+    transform: translate(1px, -1px);
+  }
+
+  50% {
+    transform: translate(-2px, 1px);
+  }
+
+  60% {
+    transform: translate(2px, -1px);
+  }
+
+  70% {
+    transform: translate(-1px, -2px);
+  }
+
+  80% {
+    transform: translate(1px, 2px);
+  }
+
+  90% {
+    transform: translate(-2px, -1px);
+  }
+}
+
+/* 林间小憩：呼吸缩放 */
+.avatar-sleep {
+  animation: avatar-breathe 4s ease-in-out infinite;
+}
+
+@keyframes avatar-breathe {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* 治愈时刻：发光脉冲 */
+.avatar-healing {
+  animation: avatar-glow 3s infinite;
+}
+
+@keyframes avatar-glow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(129, 199, 132, 0.6));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 25px rgba(102, 187, 106, 0.9));
+  }
+}
+
+/* Q弹互动：弹跳 */
+.avatar-poke {
+  animation: avatar-bounce 0.4s ease-in-out;
+}
+
+@keyframes avatar-bounce {
+
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+
+  30% {
+    transform: scale(1.15, 0.85);
+  }
+
+  50% {
+    transform: scale(0.9, 1.1);
+  }
+
+  70% {
+    transform: scale(1.05, 0.95);
+  }
+}
+
+/* ============================================
+   状态气泡弹窗 (Status Bubble)
+   毛玻璃质感，显示DSI+语录+调试入口
+   ============================================ */
+
+.status-bubble {
+  position: fixed;
+  right: 110px;
+  bottom: 80px;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  z-index: 999998;
+
+  /* 隐藏状态 */
+  opacity: 0;
+  transform: scale(0.85) translateY(10px);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status-bubble.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+/* 气泡尖角 - 指向左边的数字人 */
+.status-bubble::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: 30px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-right-color: rgba(255, 255, 255, 0.88);
+  filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.05));
+}
+
+/* 气泡头部 */
+.bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.bubble-dsi {
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2D6A4F 0%, #52B788 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Nunito', sans-serif;
+}
+
+.bubble-status {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* 治愈语录 */
+.bubble-quote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #444;
+  padding: 15px;
+  background: rgba(45, 106, 79, 0.06);
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border-left: 3px solid var(--mindflow-secondary);
+}
+
+/* 气泡底部 */
+.bubble-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.bubble-debug-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(45, 106, 79, 0.08);
+  border: 1px solid rgba(45, 106, 79, 0.15);
+  border-radius: 10px;
+  color: #2D6A4F;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bubble-debug-btn:hover {
+  background: rgba(45, 106, 79, 0.15);
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.15);
+  transform: translateY(-1px);
+}
+
+/* 气泡颜色主题 */
+.status-bubble-calm .bubble-dsi {
+  background: linear-gradient(135deg, #2D6A4F 0%, #52B788 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.status-bubble-warning .bubble-dsi {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.status-bubble-alert .bubble-dsi {
+  background: linear-gradient(135deg, #EF4444 0%, #F97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

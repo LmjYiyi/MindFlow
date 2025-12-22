@@ -41,6 +41,101 @@
   };
 
   // ============================================
+  // 本地情绪语料库 (Emotional Quotes)
+  // 90%情况使用本地语料，零延迟响应
+  // ============================================
+
+  const EMOTIONAL_QUOTES = {
+    // 低压力模式 (DSI 0-50): 夸夸/鼓励
+    LOW_DSI: [
+      "✨ 你的专注力真棒！保持这个节奏~",
+      "🌿 心流状态已开启，感受这份宁静吧",
+      "🌸 你正在高效地阅读，继续加油！",
+      "💚 状态极佳，这才是理想的浏览方式",
+      "🍀 今天的你特别专注呢！",
+      "🌻 慢慢来，不急，你做得很好",
+      "🌈 保持这份平静，你值得拥有美好",
+      "🦋 思维清晰，效率在线！",
+      "🌊 像海面一样平静，真舒服",
+      "🎋 竹林般的宁静，很适合你现在的状态",
+      "🌙 静水流深，专注的你最迷人",
+      "🍃 微风轻拂，一切刚刚好",
+      "💫 你正处于最佳状态，享受这一刻",
+      "🌺 花开不语，静静绽放的你真好看",
+      "☘️ 三叶草为你带来幸运~"
+    ],
+
+    // 高压力模式 (DSI 51-100): 安抚/治愈
+    HIGH_DSI: [
+      "💚 慢下来，深呼吸，一切都会好起来的",
+      "🌊 压力就像波浪，它终会退去",
+      "🧘 闭上眼睛，感受三次呼吸",
+      "🌿 没关系的，休息一下再继续",
+      "🌸 你已经很努力了，允许自己喘口气",
+      "🌙 累了就停下来，天不会塌的",
+      "🍵 喝杯热茶，让身体和心灵都暖一暖",
+      "🌈 雨后总会有彩虹，相信自己",
+      "💆 现在最重要的是你自己，照顾好自己",
+      "🌻 向日葵也需要阳光，你也需要休息",
+      "🦋 不是每一刻都要高效，放松也是进步",
+      "🌲 大树扎根需要时间，成长不必着急",
+      "💭 脑子累了？让它放空一会儿吧",
+      "🎐 风铃在轻轻摇曳，心也跟着慢下来",
+      "🌊 让思绪随波逐流，不必抓住每一朵浪花"
+    ],
+
+    // 早安模式 (6:00-12:00)
+    MORNING: [
+      "☀️ 早安！新的一天，新的开始",
+      "🌅 朝阳正好，愿你元气满满",
+      "🐦 小鸟已经开始歌唱，你也开始美好的一天吧",
+      "🌸 早起的你真棒！今天也要加油哦",
+      "☕ 来一杯咖啡，唤醒一整天的活力",
+      "🌻 向阳而生，今天也是向上的一天",
+      "🌈 早晨的空气最清新，深呼吸~",
+      "🦋 蝴蝶正在花间飞舞，美好正在发生",
+      "🍃 晨风轻拂，带走昨天的疲惫",
+      "💪 新的一天，你准备好迎接挑战了吗？"
+    ],
+
+    // 晚安模式 (18:00-24:00)
+    NIGHT: [
+      "🌙 该放下了，给大脑一个休息的理由",
+      "⭐ 星星已经出来了，你也该休息了",
+      "🌃 夜深了，明天会更好的",
+      "🛏️ 好好休息，明天又是元气满满的一天",
+      "🌌 银河正在闪烁，做个好梦吧",
+      "🦉 猫头鹰开始工作了，而你该睡觉了",
+      "🍵 睡前一杯温水，今天辛苦了",
+      "🌸 月光温柔，愿你有个好梦",
+      "💤 闭上眼睛，让一切归于平静",
+      "🌙 晚安，明天的你会更好的"
+    ]
+  };
+
+  /**
+   * 根据DSI值和当前时间获取随机治愈语录
+   * @param {number} dsi - 当前压力指数
+   * @returns {string} 随机语录
+   */
+  function getRandomQuote(dsi) {
+    const hour = new Date().getHours();
+    let pool = [];
+
+    // 优先按时间段选择
+    if (hour >= 6 && hour < 12) {
+      pool = EMOTIONAL_QUOTES.MORNING;
+    } else if (hour >= 22 || hour < 2) {
+      pool = EMOTIONAL_QUOTES.NIGHT;
+    } else {
+      // 其他时间按DSI选择
+      pool = dsi <= 50 ? EMOTIONAL_QUOTES.LOW_DSI : EMOTIONAL_QUOTES.HIGH_DSI;
+    }
+
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // ============================================
   // 行为感知模块 (Monitoring)
   // ============================================
 
@@ -248,7 +343,7 @@
 
       // ✅ 新增：当前氛围类型
       this.currentAtmosphere = null;
-      
+
       // ✅ 新增：氛围定时器管理
       this.atmoTimers = [];
       this.atmoIntervals = [];
@@ -540,11 +635,11 @@
       // 激活
       requestAnimationFrame(() => {
         colorLayer.classList.add('mindflow-paper-active');
-        
+
         // 【修改点】：默认自动开启 'forest' 视觉氛围（仅视觉，无声）
         // 如果用户之前没有手动选过氛围，或者当前没有氛围，则默认给一个
         if (!this.currentAtmosphere) {
-          this.setAtmosphere('forest'); 
+          this.setAtmosphere('forest');
         } else {
           // 如果已有（比如用户之前选了 fire），恢复它
           this.setAtmosphere(this.currentAtmosphere);
@@ -558,9 +653,9 @@
     deactivateSoftMode() {
       const colorLayer = document.getElementById('mindflow-paper-layer');
       const atmoLayer = document.getElementById('mindflow-atmosphere-container');
-      
+
       if (colorLayer) colorLayer.classList.remove('mindflow-paper-active');
-      
+
       // 同时也移除氛围
       if (atmoLayer) {
         atmoLayer.innerHTML = '';
@@ -572,7 +667,7 @@
         colorLayer?.remove();
         atmoLayer?.remove();
       }, 600);
-      
+
       this.softModeActive = false;
       console.log('[Level 1] 纸质护眼模式已停用');
     }
@@ -584,7 +679,7 @@
     setAtmosphere(type) {
       // 映射旧的 thunder 到 rain
       const effectType = (type === 'thunder') ? 'rain' : type;
-      
+
       this.currentAtmosphere = type; // 保存原始类型
       if (!this.softModeActive) return;
 
@@ -611,9 +706,9 @@
       // 3. 应用新状态
       atmoContainer.classList.add(`atmo-effect-${effectType}`); // 添加特效类
       colorLayer.classList.add(`paper-tint-${effectType}`);     // 添加底色类
-      
+
       console.log(`[Atmosphere] 切换模式: ${effectType}`);
-      
+
       // ✅ 关键修改：如果阅读模式处于激活状态，同步更新阅读模式的背景色
       if (this.readerModeActive && this.readerOverlay) {
         // 移除旧的 tint 类
@@ -624,19 +719,19 @@
         });
         // 添加新的 tint 类
         this.readerOverlay.classList.add(`paper-tint-${effectType}`);
-        
+
         // 强制重绘粒子（因为容器被清空了）
         // 注意：粒子容器是在阅读模式之上的（通过 CSS z-index 控制）
       }
 
       // 兼容处理：如果用户之前选了 night、rain 或 wind，现在不处理或转为默认
-      if (type === 'night' || type === 'rain' || type === 'wind') return; 
+      if (type === 'night' || type === 'rain' || type === 'wind') return;
 
       // 4. 生成粒子
       switch (effectType) {
-        case 'forest':  this.initForest(atmoContainer); break;
-        case 'ocean':   this.initOcean(atmoContainer); break;
-        case 'fire':    this.initFire(atmoContainer); break;
+        case 'forest': this.initForest(atmoContainer); break;
+        case 'ocean': this.initOcean(atmoContainer); break;
+        case 'fire': this.initFire(atmoContainer); break;
         // case 'rain': 已删除
         // case 'wind': 已删除
         // case 'night': 已删除
@@ -667,7 +762,7 @@
       // 创建落叶 🍃 - 减速：时间延长一倍
       const leafCount = 20; // 少量即可
       const emojis = ['🍃', '🍂'];
-      
+
       for (let i = 0; i < leafCount; i++) {
         const leaf = document.createElement('div');
         leaf.className = 'mf-particle mf-leaf';
@@ -714,18 +809,18 @@
         const size = Math.random() * 3 + 1;
         spark.style.width = size + 'px';
         spark.style.height = size + 'px';
-        
+
         // 全屏随机分布 X 轴
         spark.style.left = Math.random() * 100 + 'vw';
-        
+
         // 动画
         spark.style.animationName = 'mf-ember-float';
         spark.style.animationDuration = (Math.random() * 5 + 5) + 's'; // 5-10s
         spark.style.animationDelay = (Math.random() * 5) + 's';
-        
+
         // 随机摇摆幅度 (-50px 到 50px)
         spark.style.setProperty('--sway', (Math.random() * 100 - 50) + 'px');
-        
+
         container.appendChild(spark);
       }
     }
@@ -771,7 +866,7 @@
             <div class="mindflow-summary-header">
               <span class="mindflow-summary-icon">🤖</span>
               <span class="mindflow-summary-title">AI 智能摘要</span>
-              <span class="mindflow-summary-badge">DeepSeek</span>
+              <span class="mindflow-summary-badge">Google Gemini</span>
             </div>
             <div id="mindflow-summary-content" class="mindflow-summary-content">
               <div class="mindflow-summary-loading">
@@ -833,7 +928,7 @@
       chrome.runtime.sendMessage({
         type: 'READER_MODE_STATE',
         payload: { active: true }
-      }).catch(() => {});
+      }).catch(() => { });
 
       // 自动生成 AI 摘要
       setTimeout(() => {
@@ -871,7 +966,7 @@
       chrome.runtime.sendMessage({
         type: 'READER_MODE_STATE',
         payload: { active: false }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     /**
@@ -904,10 +999,10 @@
           // 查找该选择器下的元素，并检查是否包含足够多的 p 标签 (至少3个)，避免选中空的容器或导航栏
           const candidates = document.querySelectorAll(selector);
           for (const candidate of candidates) {
-             if (candidate.querySelectorAll('p').length > 3) {
-               contentElement = candidate;
-               break;
-             }
+            if (candidate.querySelectorAll('p').length > 3) {
+              contentElement = candidate;
+              break;
+            }
           }
           if (contentElement) break;
         }
@@ -921,7 +1016,7 @@
           // 获取页面所有 p 标签，过滤掉太短的（可能是导航或页脚）
           const allParagraphs = document.querySelectorAll('body p');
           let validParagraphCount = 0;
-          
+
           allParagraphs.forEach(p => {
             // 简单的启发式：段落长度大于 20 字符，或者是图片
             if (p.textContent.trim().length > 20 || p.querySelector('img')) {
@@ -929,9 +1024,9 @@
               validParagraphCount++;
             }
           });
-          
+
           if (validParagraphCount < 3) {
-             console.warn('[Reader] 有效段落太少，可能不是文章页');
+            console.warn('[Reader] 有效段落太少，可能不是文章页');
           }
         } else {
           // 克隆找到的容器，避免修改原页面
@@ -942,11 +1037,11 @@
         // 移除无关元素
         const removeSelectors = [
           'script', 'style', 'noscript', 'iframe', 'svg', 'button', 'input', 'textarea', 'select', 'form',
-          'nav', 'header', 'footer', 'aside', 
+          'nav', 'header', 'footer', 'aside',
           '.sidebar', '.ad', '.advertisement', '.social-share', '.comments', '.related-posts',
           '[id*="comment"]', '[class*="comment"]', '[id*="share"]', '[class*="share"]'
         ];
-        
+
         // 注意：先移除 MindFlow 自己的元素
         contentElement.querySelectorAll('[id^="mindflow-"], [class^="mindflow-"]').forEach(el => el.remove());
 
@@ -960,23 +1055,23 @@
           if (node.nodeType === 1) { // 元素节点
             // 白名单属性，其他全部移除
             const allowedAttrs = ['src', 'href', 'alt', 'title', 'width', 'height', 'datetime'];
-            
+
             // 获取所有属性名
             const attrs = Array.from(node.attributes).map(a => a.name);
-            
+
             attrs.forEach(attrName => {
               if (!allowedAttrs.includes(attrName)) {
                 node.removeAttribute(attrName);
               }
             });
-            
+
             // 特殊处理：移除空的 div 或 span (可选，为了更干净)
             // 但要保留包含 img 的 div
-            if ((node.tagName === 'DIV' || node.tagName === 'SPAN') && 
-                node.innerHTML.trim() === '' && !node.querySelector('img')) {
+            if ((node.tagName === 'DIV' || node.tagName === 'SPAN') &&
+              node.innerHTML.trim() === '' && !node.querySelector('img')) {
               // node.remove(); // 遍历中删除可能会有问题，这里暂不删除，交给 CSS 处理空元素
             }
-            
+
             // 递归处理子节点
             let child = node.firstChild;
             while (child) {
@@ -986,7 +1081,7 @@
             }
           }
         };
-        
+
         stripAttributes(contentElement);
 
         const content = contentElement.innerHTML;
@@ -994,7 +1089,7 @@
 
         // 检查提取结果是否为空
         if (content.trim().length === 0) {
-           throw new Error('提取内容为空');
+          throw new Error('提取内容为空');
         }
 
         return {
@@ -1202,12 +1297,12 @@
 
       this.therapyActive = true;
       console.log('[Level 3] 视觉疗愈已激活（4-6 呼吸法）');
-      
+
       // ✅ 发送疗愈开始信号给 background.js（用于加速衰减）
-      chrome.runtime.sendMessage({ 
-        type: 'THERAPY_ACTIVE', 
-        payload: { active: true } 
-      }).catch(() => {});
+      chrome.runtime.sendMessage({
+        type: 'THERAPY_ACTIVE',
+        payload: { active: true }
+      }).catch(() => { });
     }
 
     /**
@@ -1240,15 +1335,15 @@
       this.therapyActive = false;
 
       // ✅ 发送疗愈结束信号给 background.js（停止加速衰减）
-      chrome.runtime.sendMessage({ 
-        type: 'THERAPY_ACTIVE', 
-        payload: { active: false } 
-      }).catch(() => {});
+      chrome.runtime.sendMessage({
+        type: 'THERAPY_ACTIVE',
+        payload: { active: false }
+      }).catch(() => { });
 
       // ✅ 核心逻辑：如果疗愈完成，发送信号给后台
       if (completed) {
         console.log('[Level 3] 🧘 疗愈完整结束，发送回退信号');
-        chrome.runtime.sendMessage({ type: 'THERAPY_COMPLETED' }).catch(() => {});
+        chrome.runtime.sendMessage({ type: 'THERAPY_COMPLETED' }).catch(() => { });
 
         // 简单的成功反馈
         this.showSuggestion({
@@ -1466,13 +1561,354 @@
     }
   }
 
+  // ============================================
+  // 数字人头像组件 (Digital Avatar)
+  // 替代原浮动按钮，6种可爱状态
+  // ============================================
+
+  class DigitalAvatar {
+    constructor(onClick) {
+      this.container = null;
+      this.currentState = 'zen'; // 初始状态
+      this.dsi = 0;
+      this.onClick = onClick;
+      this.init();
+    }
+
+    init() {
+      this.container = document.createElement('div');
+      this.container.id = 'digital-avatar';
+      this.container.className = 'digital-avatar avatar-zen';
+      this.container.innerHTML = this.renderSVG('zen');
+      document.body.appendChild(this.container);
+
+      // 点击触发回调 + 短暂Q弹动画
+      this.container.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.playPokeAnimation();
+        if (this.onClick) this.onClick();
+      });
+
+      // 可拖拽
+      this.makeDraggable();
+    }
+
+    // 根据DSI值返回状态名
+    getStateByDSI(dsi) {
+      if (dsi <= 30) return 'zen';        // 森之静谧
+      if (dsi <= 50) return 'distract';   // 微风扰动
+      if (dsi <= 70) return 'burnout';    // 焦糖过载
+      if (dsi <= 85) return 'sleep';      // 林间小憩
+      return 'healing';                    // 治愈时刻
+    }
+
+    // 更新DSI并切换状态
+    updateDSI(dsi) {
+      this.dsi = dsi;
+      const newState = this.getStateByDSI(dsi);
+      if (newState !== this.currentState) {
+        this.setState(newState);
+      }
+    }
+
+    // 播放Q弹交互动画
+    playPokeAnimation() {
+      this.container.classList.add('avatar-poke');
+      setTimeout(() => {
+        this.container.classList.remove('avatar-poke');
+      }, 400);
+    }
+
+    setState(stateName) {
+      this.currentState = stateName;
+      this.container.innerHTML = this.renderSVG(stateName);
+      this.container.className = `digital-avatar avatar-${stateName}`;
+    }
+
+    renderSVG(state) {
+      let bodyColor = '#F8FAF7';  // 默认森林白
+      let face = '';
+      let extras = '';
+      let sproutColor = '#81C784';
+
+      switch (state) {
+        case 'zen': // 森之静谧 - 闭眼微笑
+          bodyColor = '#F8FAF7';
+          face = `
+            <path d="M19 34 Q23 30 27 34" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M33 34 Q37 30 41 34" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M26 40 Q30 44 34 40" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+          `;
+          extras = `
+            <path class="wind-line" d="M48 27 Q52 24 56 27" fill="none" stroke="#A5D6A7" stroke-width="1"/>
+            <path class="wind-line" d="M50 32 Q54 29 58 32" fill="none" stroke="#A5D6A7" stroke-width="1"/>
+          `;
+          break;
+
+        case 'distract': // 微风扰动 - 斜眼
+          bodyColor = '#E8F5E9';
+          face = `
+            <circle cx="22" cy="34" r="3" fill="white" stroke="#5d4037" stroke-width="1"/>
+            <circle cx="24" cy="34" r="1.2" fill="#333"/>
+            <circle cx="38" cy="34" r="3" fill="white" stroke="#5d4037" stroke-width="1"/>
+            <circle cx="40" cy="34" r="1.2" fill="#333"/>
+            <path d="M27 42 L33 42" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M19 30 L25 30" stroke="#5d4037" stroke-width="1"/>
+          `;
+          break;
+
+        case 'burnout': // 焦糖过载 - 螺旋眼+抖动
+          bodyColor = '#E6CCB2';
+          sproutColor = '#8D6E63';
+          face = `
+            <path d="M19 34 C19 30, 27 30, 27 34 C27 38, 19 38, 21 34" stroke="#3e2723" stroke-width="1" fill="none"/>
+            <path d="M33 34 C33 30, 41 30, 41 34 C41 38, 33 38, 35 34" stroke="#3e2723" stroke-width="1" fill="none"/>
+            <path d="M24 45 Q27 42 30 45 Q33 48 36 45" stroke="#3e2723" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          `;
+          extras = `
+            <path d="M14 28 L12 24 M12 30 L10 26" stroke="#3e2723" stroke-width="1"/>
+            <path d="M46 28 L48 24 M48 30 L50 26" stroke="#3e2723" stroke-width="1"/>
+          `;
+          break;
+
+        case 'sleep': // 林间小憩 - 睡眼+鼻涕泡泡
+          bodyColor = '#F8FAF7';
+          face = `
+            <path d="M19 35 L27 35" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M33 35 L41 35" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M27 41 Q30 43 33 41" stroke="#5d4037" stroke-width="1" fill="none"/>
+          `;
+          extras = `
+            <circle class="snot-bubble" cx="36" cy="45" r="4" fill="#B3E5FC" stroke="#81D4FA" stroke-width="0.5" opacity="0.8"/>
+            <text x="48" y="22" font-family="Arial" font-size="8" fill="#78909C" font-weight="bold">Zzz</text>
+          `;
+          break;
+
+        case 'healing': // 治愈时刻 - 发光
+          bodyColor = '#A5D6A7';
+          sproutColor = '#66BB6A';
+          face = `
+            <path d="M19 34 Q23 36 27 34" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M33 34 Q37 36 41 34" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M27 41 Q30 43 33 41" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          `;
+          extras = `
+            <circle class="glow-particle" cx="12" cy="50" r="2" fill="#FFF9C4" opacity="0.8"/>
+            <circle class="glow-particle" cx="52" cy="20" r="2.5" fill="#FFF9C4" opacity="0.8"/>
+            <circle class="glow-particle" cx="48" cy="55" r="1.5" fill="#FFF9C4" opacity="0.8"/>
+            <circle class="glow-particle" cx="8" cy="28" r="2" fill="#FFF9C4" opacity="0.8"/>
+          `;
+          break;
+
+        default: // poke等
+          bodyColor = '#FFF';
+          face = `
+            <path d="M19 32 L23 35 L19 38" stroke="#5d4037" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M41 32 L37 35 L41 38" stroke="#5d4037" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="30" cy="44" r="3" fill="#FF8A80" stroke="#5d4037" stroke-width="1"/>
+          `;
+      }
+
+      // 腮红
+      const cheeks = `
+        <ellipse cx="17" cy="38" rx="3" ry="1.5" fill="#FFCDD2" opacity="0.6"/>
+        <ellipse cx="43" cy="38" rx="3" ry="1.5" fill="#FFCDD2" opacity="0.6"/>
+      `;
+
+      // 头顶嫩芽
+      const sprout = `
+        <path class="avatar-sprout" d="M30 16 Q25 6 18 10 Q25 15 30 16" fill="${sproutColor}" stroke="#5d4037" stroke-width="0.8"/>
+        <path class="avatar-sprout" d="M30 16 Q35 6 42 10 Q35 15 30 16" fill="${sproutColor}" stroke="#5d4037" stroke-width="0.8"/>
+        <path d="M30 16 L30 20" stroke="#5d4037" stroke-width="1"/>
+      `;
+
+      return `
+        <svg viewBox="0 0 60 65" class="avatar-svg">
+          <!-- 身体 -->
+          <ellipse class="avatar-body" cx="30" cy="38" rx="22" ry="18" fill="${bodyColor}" stroke="#5d4037" stroke-width="1.5"/>
+          ${sprout}
+          ${cheeks}
+          ${face}
+          ${extras}
+        </svg>
+      `;
+    }
+
+    makeDraggable() {
+      let isDragging = false;
+      let startX, startY, startLeft, startTop;
+
+      this.container.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        const rect = this.container.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = rect.left;
+        startTop = rect.top;
+        this.container.style.transition = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        let newLeft = startLeft + dx;
+        let newTop = startTop + dy;
+
+        // 限制在视口内
+        newLeft = Math.max(10, Math.min(window.innerWidth - 90, newLeft));
+        newTop = Math.max(10, Math.min(window.innerHeight - 90, newTop));
+
+        this.container.style.left = newLeft + 'px';
+        this.container.style.top = newTop + 'px';
+        this.container.style.right = 'auto';
+        this.container.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          this.container.style.transition = '';
+          // 保存位置
+          localStorage.setItem('mindflow-avatar-left', this.container.style.left);
+          localStorage.setItem('mindflow-avatar-top', this.container.style.top);
+        }
+      });
+
+      // 恢复上次位置
+      const savedLeft = localStorage.getItem('mindflow-avatar-left');
+      const savedTop = localStorage.getItem('mindflow-avatar-top');
+      if (savedLeft && savedTop) {
+        this.container.style.left = savedLeft;
+        this.container.style.top = savedTop;
+        this.container.style.right = 'auto';
+        this.container.style.bottom = 'auto';
+      }
+    }
+  }
+
+  // ============================================
+  // 状态气泡弹窗 (Status Bubble)
+  // 毛玻璃质感，显示DSI+语录+调试入口
+  // ============================================
+
+  class StatusBubble {
+    constructor(getSidebar) {
+      this.bubble = null;
+      this.getSidebar = getSidebar; // 获取侧边栏实例的回调
+      this.isVisible = false;
+    }
+
+    toggle(dsi) {
+      if (this.isVisible) {
+        this.hide();
+      } else {
+        this.show(dsi);
+      }
+    }
+
+    show(dsi) {
+      if (!this.bubble) this.create();
+
+      // 更新内容
+      const quote = getRandomQuote(dsi);
+      const statusText = this.getStatusText(dsi);
+      const statusEmoji = this.getStatusEmoji(dsi);
+
+      const dsiEl = document.getElementById('bubble-dsi');
+      const statusEl = document.getElementById('bubble-status');
+      const quoteEl = document.getElementById('bubble-quote');
+
+      if (dsiEl) dsiEl.textContent = Math.round(dsi);
+      if (statusEl) statusEl.textContent = `${statusEmoji} ${statusText}`;
+      if (quoteEl) quoteEl.textContent = quote;
+
+      // 根据DSI设置颜色主题
+      this.bubble.className = `status-bubble status-bubble-${this.getTheme(dsi)}`;
+
+      requestAnimationFrame(() => {
+        this.bubble.classList.add('visible');
+      });
+      this.isVisible = true;
+    }
+
+    hide() {
+      if (this.bubble) {
+        this.bubble.classList.remove('visible');
+        this.isVisible = false;
+      }
+    }
+
+    create() {
+      this.bubble = document.createElement('div');
+      this.bubble.id = 'status-bubble';
+      this.bubble.className = 'status-bubble';
+      this.bubble.innerHTML = `
+        <div class="bubble-header">
+          <span class="bubble-dsi" id="bubble-dsi">0</span>
+          <span class="bubble-status" id="bubble-status">😊 状态良好</span>
+        </div>
+        <div class="bubble-quote" id="bubble-quote">
+          ✨ 点击查看今日治愈语录~
+        </div>
+        <div class="bubble-footer">
+          <button class="bubble-debug-btn" id="bubble-debug-btn">
+            🛠️ 调试控制台
+          </button>
+        </div>
+      `;
+      document.body.appendChild(this.bubble);
+
+      // 调试按钮 -> 展开侧边栏
+      document.getElementById('bubble-debug-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.hide();
+        const sidebar = this.getSidebar();
+        if (sidebar) sidebar.show();
+      });
+
+      // 点击气泡外部关闭
+      document.addEventListener('click', (e) => {
+        if (this.isVisible && !this.bubble.contains(e.target)
+          && !e.target.closest('#digital-avatar')) {
+          this.hide();
+        }
+      });
+    }
+
+    getStatusText(dsi) {
+      if (dsi <= 30) return '状态极佳';
+      if (dsi <= 50) return '心流区间';
+      if (dsi <= 70) return '压力上升';
+      if (dsi <= 85) return '需要休息';
+      return '高压预警';
+    }
+
+    getStatusEmoji(dsi) {
+      if (dsi <= 30) return '😊';
+      if (dsi <= 50) return '🌿';
+      if (dsi <= 70) return '⚡';
+      if (dsi <= 85) return '⚠️';
+      return '🚨';
+    }
+
+    getTheme(dsi) {
+      if (dsi <= 50) return 'calm';
+      if (dsi <= 70) return 'warning';
+      return 'alert';
+    }
+  }
+
+  // ============================================
   // 侧边栏面板 (Sidebar Panel)
   // ============================================
 
   class SidebarPanel {
     constructor() {
       this.panel = null;
-      this.floatButton = null;
+      this.digitalAvatar = null;
+      this.statusBubble = null;
       this.isVisible = false;
       this.dsi = 0;
       this.level = 0;
@@ -1481,10 +1917,15 @@
     }
 
     init() {
-      // 创建悬浮触发按钮（始终显示）
-      this.createFloatButton();
+      // 创建气泡弹窗（先创建，因为它需要获取侧边栏引用）
+      this.statusBubble = new StatusBubble(() => this);
 
-      // 创建侧边栏面板
+      // 创建数字人头像（替代原浮动按钮）
+      this.digitalAvatar = new DigitalAvatar(() => {
+        this.statusBubble.toggle(this.dsi);
+      });
+
+      // 创建侧边栏面板（精简版）
       this.createPanel();
 
       // 定期更新 DSI 显示
@@ -1500,140 +1941,21 @@
     }
 
     /**
-     * 创建悬浮触发按钮
-     */
-    createFloatButton() {
-      this.floatButton = document.createElement('div');
-      this.floatButton.id = 'mindflow-float-button';
-      this.floatButton.className = 'mindflow-float-button';
-
-      this.floatButton.innerHTML = `
-        <div class="mindflow-float-inner">
-          <div class="mindflow-float-icon">🧘</div>
-          <div class="mindflow-float-dsi" id="mindflow-float-dsi">0</div>
-          <div class="mindflow-float-ring" id="mindflow-float-ring"></div>
-        </div>
-        <div class="mindflow-float-tooltip">
-          <span>MindFlow</span>
-          <span class="mindflow-float-shortcut">Alt+M</span>
-        </div>
-      `;
-
-      document.body.appendChild(this.floatButton);
-
-      // 点击打开侧边栏
-      this.floatButton.addEventListener('click', () => {
-        this.toggle();
-      });
-
-      // 拖拽功能
-      this.makeDraggable(this.floatButton);
-    }
-
-    /**
-     * 使悬浮按钮可拖拽到任意位置（上下左右）
-     */
-    makeDraggable(element) {
-      let isDragging = false;
-      let startX = 0;
-      let startY = 0;
-      let startLeft = 0;
-      let startTop = 0;
-
-      element.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.mindflow-float-inner')) {
-          isDragging = true;
-          startX = e.clientX;
-          startY = e.clientY;
-
-          // 获取当前位置
-          const rect = element.getBoundingClientRect();
-          startLeft = rect.left;
-          startTop = rect.top;
-
-          element.style.transition = 'none';
-          e.preventDefault();
-        }
-      });
-
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-
-        let newLeft = startLeft + deltaX;
-        let newTop = startTop + deltaY;
-
-        // 限制在视口范围内
-        const maxLeft = window.innerWidth - element.offsetWidth - 10;
-        const maxTop = window.innerHeight - element.offsetHeight - 10;
-
-        newLeft = Math.max(10, Math.min(maxLeft, newLeft));
-        newTop = Math.max(10, Math.min(maxTop, newTop));
-
-        element.style.left = newLeft + 'px';
-        element.style.top = newTop + 'px';
-        element.style.right = 'auto';
-        element.style.bottom = 'auto';
-      });
-
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          element.style.transition = '';
-
-          // 保存位置到 localStorage
-          localStorage.setItem('mindflow-float-left', element.style.left);
-          localStorage.setItem('mindflow-float-top', element.style.top);
-        }
-      });
-
-      // 恢复上次位置
-      const savedLeft = localStorage.getItem('mindflow-float-left');
-      const savedTop = localStorage.getItem('mindflow-float-top');
-      if (savedLeft && savedTop) {
-        element.style.left = savedLeft;
-        element.style.top = savedTop;
-        element.style.right = 'auto';
-        element.style.bottom = 'auto';
-      }
-    }
-
-    /**
-     * 更新悬浮按钮显示
+     * 更新悬浮按钮显示（现在更新数字人头像状态）
      */
     updateFloatButton() {
-      const floatDsi = document.getElementById('mindflow-float-dsi');
-      const floatRing = document.getElementById('mindflow-float-ring');
-
-      if (floatDsi) {
-        floatDsi.textContent = Math.round(this.dsi);
-      }
-
-      if (floatRing) {
-        // 根据 DSI 值设置环形进度
-        const progress = this.dsi / 100;
-        const circumference = 2 * Math.PI * 26; // r=26
-        const offset = circumference * (1 - progress);
-        floatRing.style.setProperty('--progress-offset', offset);
-
-        // 根据级别设置颜色
-        const colors = ['#4CAF50', '#FFC107', '#FF9800', '#F44336'];
-        floatRing.style.setProperty('--progress-color', colors[this.level]);
-      }
-
-      // 根据级别添加动画效果
-      if (this.floatButton) {
-        this.floatButton.className = `mindflow-float-button mindflow-float-level-${this.level}`;
+      // 更新数字人头像状态
+      if (this.digitalAvatar) {
+        this.digitalAvatar.updateDSI(this.dsi);
       }
     }
 
     createPanel() {
       this.panel = document.createElement('div');
       this.panel.id = 'mindflow-sidebar';
-      this.panel.className = 'mindflow-sidebar';
+      this.panel.className = 'mindflow-sidebar mindflow-sidebar-compact';
 
+      // 精简版侧边栏：只保留调试控制台
       this.panel.innerHTML = `
         <div class="mindflow-sidebar-header">
           <div class="mindflow-sidebar-logo">
@@ -1644,79 +1966,7 @@
         </div>
         
         <div class="mindflow-sidebar-content">
-          <!-- DSI 仪表盘：圆环进度条 + 大数字 -->
-          <div class="mindflow-dsi-display">
-            <div class="mindflow-dsi-label">数字压力指数</div>
-            <div class="mindflow-dsi-ring-container" id="mindflow-dsi-ring-container">
-              <!-- 中间的白色遮罩，形成圆环效果 -->
-              <div class="mindflow-dsi-inner-mask"></div>
-              <div class="mindflow-dsi-number" id="mindflow-dsi-value">0</div>
-            </div>
-            <div class="mindflow-dsi-status-badge" id="mindflow-dsi-status">😊 状态良好</div>
-          </div>
-          
-          <!-- 干预级别：垂直时间轴 -->
-          <div class="mindflow-level-indicator">
-            <div class="mindflow-level-title">当前干预级别</div>
-            <ul class="mindflow-level-list">
-              <li class="mindflow-level-item" data-level="0" id="mindflow-level-0">
-                <span class="mindflow-level-text">正常浏览</span>
-              </li>
-              <li class="mindflow-level-item" data-level="1" id="mindflow-level-1">
-                <span class="mindflow-level-text">柔和模式</span>
-              </li>
-              <li class="mindflow-level-item" data-level="2" id="mindflow-level-2">
-                <span class="mindflow-level-text">阅读模式</span>
-              </li>
-              <li class="mindflow-level-item" data-level="3" id="mindflow-level-3">
-                <span class="mindflow-level-text">视觉疗愈</span>
-              </li>
-            </ul>
-          </div>
-          
-          <!-- 信息卡片：可折叠 -->
-          <div class="mindflow-info-card">
-            <div class="mindflow-info-header" id="mindflow-info-toggle">
-              <span class="mindflow-info-icon">💡</span>
-              <span class="mindflow-info-title">DSI 如何变化？</span>
-              <span class="mindflow-info-arrow">▼</span>
-            </div>
-            <div class="mindflow-info-content" id="mindflow-info-content">
-              <div class="mindflow-info-row">
-                <span class="mindflow-info-icon">📈</span>
-                <span>快速滚动 (>1500px/s) → +5</span>
-              </div>
-              <div class="mindflow-info-row">
-                <span class="mindflow-info-icon">🖱️</span>
-                <span>高频点击 (>3次/s) → +8</span>
-              </div>
-              <div class="mindflow-info-row">
-                <span class="mindflow-info-icon">⏱️</span>
-                <span>持续浏览 → +0.5/秒</span>
-              </div>
-              <div class="mindflow-info-row">
-                <span class="mindflow-info-icon">😴</span>
-                <span>静止10秒后 → -2/秒</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 氛围切换功能 -->
-          <div class="mindflow-atmosphere-card">
-            <div class="mindflow-atmosphere-header">
-              <span class="mindflow-atmosphere-icon">🎨</span>
-              <span class="mindflow-atmosphere-title">背景氛围</span>
-            </div>
-            <div class="mindflow-atmosphere-options" id="mindflow-atmosphere-options">
-              <div class="mindflow-atmosphere-grid">
-                <button class="mindflow-atmosphere-btn" data-atmosphere="forest" title="森林">🌲</button>
-                <button class="mindflow-atmosphere-btn" data-atmosphere="ocean" title="海浪">🌊</button>
-                <button class="mindflow-atmosphere-btn" data-atmosphere="fire" title="火焰">🔥</button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 🛠️ 调试控制台 (仅开发用) -->
+          <!-- 🛠️ 调试控制台 -->
           <div class="mindflow-debug-card">
             <div class="mindflow-debug-title">
               <span>🛠️ 调试控制台</span>
@@ -1728,6 +1978,21 @@
               <button class="mindflow-debug-chip" data-val="45">45 (心流)</button>
               <button class="mindflow-debug-chip" data-val="70">70 (阅读)</button>
               <button class="mindflow-debug-chip" data-val="90">90 (疗愈)</button>
+            </div>
+          </div>
+          
+          <!-- 🎨 氛围背景选择 -->
+          <div class="mindflow-atmosphere-card">
+            <div class="mindflow-atmosphere-header">
+              <span class="mindflow-atmosphere-icon">🎨</span>
+              <span class="mindflow-atmosphere-title">背景氛围</span>
+            </div>
+            <div class="mindflow-atmosphere-options" id="mindflow-atmosphere-options">
+              <div class="mindflow-atmosphere-grid">
+                <button class="mindflow-atmosphere-btn" data-atmosphere="forest" title="森林">🌲</button>
+                <button class="mindflow-atmosphere-btn" data-atmosphere="ocean" title="海浪">🌊</button>
+                <button class="mindflow-atmosphere-btn" data-atmosphere="fire" title="火焰">🔥</button>
+              </div>
             </div>
           </div>
           
@@ -1760,32 +2025,6 @@
 
       // 调试控制台功能
       this.initDebugControls();
-
-      // 信息卡片折叠功能
-      const infoToggle = document.getElementById('mindflow-info-toggle');
-      const infoContent = document.getElementById('mindflow-info-content');
-      if (infoToggle && infoContent) {
-        let isExpanded = false;
-        infoToggle.addEventListener('click', () => {
-          isExpanded = !isExpanded;
-          if (isExpanded) {
-            infoContent.style.maxHeight = infoContent.scrollHeight + 'px';
-            infoContent.classList.add('active');
-          } else {
-            infoContent.style.maxHeight = '0';
-            infoContent.classList.remove('active');
-          }
-          const arrow = infoToggle.querySelector('.mindflow-info-arrow');
-          if (arrow) {
-            arrow.textContent = isExpanded ? '▲' : '▼';
-            arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(0deg)';
-          }
-        });
-        // 默认折叠
-        infoContent.style.maxHeight = '0';
-      }
-
-      // 默认不显示面板（用户点击悬浮按钮打开）
     }
 
     /**
@@ -1802,17 +2041,17 @@
           atmosphereButtons.forEach(b => b.classList.remove('active'));
           // 添加当前按钮的 active 状态
           btn.classList.add('active');
-          
+
           // 分发氛围变更事件
           const event = new CustomEvent('mindflow:atmosphere-change', {
             detail: { type: atmosphereType }
           });
           document.dispatchEvent(event);
-          
+
           console.log(`[Atmosphere] 切换到 ${atmosphereType} 氛围`);
         });
       });
-      
+
       // 默认选中第一个（森林）
       if (atmosphereButtons.length > 0) {
         atmosphereButtons[0].classList.add('active');
@@ -1834,12 +2073,12 @@
         val = parseInt(val);
         display.textContent = `DSI: ${val}`;
         slider.value = val;
-        
+
         // 发送给 background.js
         if (chrome.runtime?.id) {
-          chrome.runtime.sendMessage({ 
-            type: 'DEBUG_SET_DSI', 
-            payload: { dsi: val } 
+          chrome.runtime.sendMessage({
+            type: 'DEBUG_SET_DSI',
+            payload: { dsi: val }
           }).catch(() => {
             // Service Worker 可能未就绪，静默忽略
           });
@@ -1851,7 +2090,7 @@
       slider.addEventListener('input', (e) => {
         display.textContent = `DSI: ${e.target.value}`;
       });
-      
+
       slider.addEventListener('change', (e) => {
         setDSI(e.target.value);
       });

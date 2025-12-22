@@ -2299,17 +2299,35 @@
   pointer-events: auto;
 }
 
-/* 气泡尖角 - 指向左边的数字人 */
+/* 气泡尖角 - 默认指向左边的数字人 */
 .status-bubble::after {
   content: '';
   position: absolute;
   left: -10px;
-  bottom: 30px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 0;
   height: 0;
   border: 10px solid transparent;
   border-right-color: rgba(255, 255, 255, 0.88);
   filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.05));
+}
+
+/* 气泡在数字人右侧时，箭头指向左边 */
+.status-bubble.bubble-right::after {
+  left: -10px;
+  right: auto;
+  border-right-color: rgba(255, 255, 255, 0.88);
+  border-left-color: transparent;
+}
+
+/* 气泡在数字人左侧时，箭头指向右边 */
+.status-bubble.bubble-left::after {
+  left: auto;
+  right: -10px;
+  border-left-color: rgba(255, 255, 255, 0.88);
+  border-right-color: transparent;
+  filter: drop-shadow(2px 0 2px rgba(0, 0, 0, 0.05));
 }
 
 /* 气泡头部 */

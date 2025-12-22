@@ -1567,13 +1567,14 @@
   // ============================================
 
   class DigitalAvatar {
-    constructor(onClick, onHover, onLeave) {
+    constructor(onClick, onHover, onLeave, onPositionChange) {
       this.container = null;
       this.currentState = 'zen'; // 初始状态
       this.dsi = 0;
       this.onClick = onClick;
-      this.onHover = onHover;   // 新增：悬停回调
-      this.onLeave = onLeave;   // 新增：离开回调
+      this.onHover = onHover;   // 悬停回调
+      this.onLeave = onLeave;   // 离开回调
+      this.onPositionChange = onPositionChange; // 新增：位置变化回调
       this.init();
     }
 
@@ -1776,6 +1777,11 @@
         this.container.style.top = newTop + 'px';
         this.container.style.right = 'auto';
         this.container.style.bottom = 'auto';
+
+        // 新增：通知位置变化
+        if (this.onPositionChange) {
+          this.onPositionChange(newLeft, newTop);
+        }
       });
 
       document.addEventListener('mouseup', () => {
@@ -1796,7 +1802,18 @@
         this.container.style.top = savedTop;
         this.container.style.right = 'auto';
         this.container.style.bottom = 'auto';
+
+        // 新增：恢复位置后通知
+        if (this.onPositionChange) {
+          this.onPositionChange(parseFloat(savedLeft), parseFloat(savedTop));
+        }
       }
+    }
+
+    // 新增：获取当前位置
+    getPosition() {
+      const rect = this.container.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     }
   }
 
@@ -1912,6 +1929,43 @@
       if (dsi <= 70) return 'warning';
       return 'alert';
     }
+
+    /**
+     * 新增：根据数字人位置更新气泡位置
+     * @param {number} avatarLeft - 数字人左边距
+     * @param {number} avatarTop - 数字人上边距
+     * @param {number} avatarWidth - 数字人宽度
+     * @param {number} avatarHeight - 数字人高度
+     */
+    updatePosition(avatarLeft, avatarTop, avatarWidth = 80, avatarHeight = 80) {
+      if (!this.bubble) return;
+
+      const bubbleWidth = 280; // 气泡宽度
+      const gap = 15; // 气泡与数字人的间距
+
+      // 气泡位于数字人右侧
+      let bubbleLeft = avatarLeft + avatarWidth + gap;
+      let bubbleTop = avatarTop + avatarHeight / 2 - 60; // 垂直居中偏上
+
+      // 如果超出右边界，则放到左侧
+      if (bubbleLeft + bubbleWidth > window.innerWidth - 20) {
+        bubbleLeft = avatarLeft - bubbleWidth - gap;
+        this.bubble.classList.add('bubble-left'); // 添加左侧样式（箭头方向）
+        this.bubble.classList.remove('bubble-right');
+      } else {
+        this.bubble.classList.add('bubble-right');
+        this.bubble.classList.remove('bubble-left');
+      }
+
+      // 限制在视口内
+      bubbleLeft = Math.max(10, bubbleLeft);
+      bubbleTop = Math.max(10, Math.min(window.innerHeight - 200, bubbleTop));
+
+      this.bubble.style.left = bubbleLeft + 'px';
+      this.bubble.style.top = bubbleTop + 'px';
+      this.bubble.style.right = 'auto';
+      this.bubble.style.bottom = 'auto';
+    }
   }
 
   // ============================================
@@ -1937,7 +1991,7 @@
       // 新增：记录上一次的压力等级，用于主动说话功能
       this.lastLevel = 0;
 
-      // 创建数字人头像（传入三个回调：点击、悬停、离开）
+      // 创建数字人头像（传入四个回调：点击、悬停、离开、位置变化）
       this.digitalAvatar = new DigitalAvatar(
         // 1. onClick: 点击时锁定/解锁气泡
         () => {
@@ -1948,6 +2002,7 @@
           } else {
             // 如果未显示，点击则打开并锁定（不会因 hover 离开而关闭）
             this.statusBubble.show(this.dsi);
+            this.updateBubblePosition(); // 更新气泡位置
             this.statusBubble.isClickLocked = true;
             this.statusBubble.isHoverTriggered = false;
           }
@@ -1956,6 +2011,7 @@
         () => {
           if (!this.statusBubble.isVisible) {
             this.statusBubble.show(this.dsi);
+            this.updateBubblePosition(); // 更新气泡位置
             this.statusBubble.isHoverTriggered = true;
             this.statusBubble.isClickLocked = false;
           }
@@ -1967,6 +2023,13 @@
             !this.statusBubble.isClickLocked) {
             this.statusBubble.hide();
             this.statusBubble.isHoverTriggered = false;
+          }
+        },
+        // 4. onPositionChange: 拖拽时同步更新气泡位置
+        (newLeft, newTop) => {
+          if (this.statusBubble.isVisible) {
+            const pos = this.digitalAvatar.getPosition();
+            this.statusBubble.updatePosition(pos.left, pos.top, pos.width, pos.height);
           }
         }
       );
@@ -2002,6 +2065,7 @@
           if (!this.statusBubble.isVisible && this.dsi < 70) {
             console.log('[Mindy] 💬 闲时碎碎念...');
             this.statusBubble.show(this.dsi);
+            this.updateBubblePosition(); // 更新气泡位置
             this.statusBubble.isHoverTriggered = true; // 标记为非锁定，5秒后自动消失
 
             // 5秒后自动隐藏
@@ -2015,6 +2079,16 @@
         }, delay);
       };
       scheduleNextChatter();
+    }
+
+    /**
+     * 新增：更新气泡位置（相对于数字人）
+     */
+    updateBubblePosition() {
+      if (this.digitalAvatar && this.statusBubble) {
+        const pos = this.digitalAvatar.getPosition();
+        this.statusBubble.updatePosition(pos.left, pos.top, pos.width, pos.height);
+      }
     }
 
     /**

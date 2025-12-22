@@ -1608,11 +1608,11 @@
 
     // 根据DSI值返回状态名
     getStateByDSI(dsi) {
-      if (dsi <= 30) return 'zen';        // 森之静谧
-      if (dsi <= 50) return 'distract';   // 微风扰动
-      if (dsi <= 70) return 'burnout';    // 焦糖过载
-      if (dsi <= 85) return 'sleep';      // 林间小憩
-      return 'healing';                    // 治愈时刻
+      if (dsi <= 30) return 'zen';        // 森之静谧 (0-30)
+      if (dsi <= 50) return 'healing';    // 治愈时刻 (31-50) - 发光状态
+      if (dsi <= 70) return 'healing';    // 治愈时刻 (51-70) - 发光状态
+      if (dsi <= 85) return 'healing';    // 治愈时刻 (71-85) - 发光状态
+      return 'sleep';                      // 林间小憩 (86-100) - 睡觉+鼻涕泡泡
     }
 
     // 更新DSI并切换状态
@@ -1884,19 +1884,28 @@
           ✨ 点击查看今日治愈语录~
         </div>
         <div class="bubble-footer">
-          <button class="bubble-debug-btn" id="bubble-debug-btn">
-            🛠️ 调试控制台
+          <button class="bubble-action-btn" id="bubble-debug-btn" title="调试控制台">
+            🛠️
+          </button>
+          <button class="bubble-action-btn" id="bubble-atmosphere-btn" title="背景氛围">
+            🎨
           </button>
         </div>
       `;
       document.body.appendChild(this.bubble);
 
-      // 调试按钮 -> 展开侧边栏
+      // 调试按钮 -> 展开调试面板
       document.getElementById('bubble-debug-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        this.hide();
         const sidebar = this.getSidebar();
-        if (sidebar) sidebar.show();
+        if (sidebar) sidebar.toggleDebugPanel();
+      });
+
+      // 氛围按钮 -> 展开氛围选择器
+      document.getElementById('bubble-atmosphere-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sidebar = this.getSidebar();
+        if (sidebar) sidebar.toggleAtmospherePanel();
       });
 
       // 点击气泡外部关闭
@@ -1969,6 +1978,253 @@
   }
 
   // ============================================
+  // 调试控制台浮窗 (Debug Panel)
+  // ============================================
+
+  class DebugPanel {
+    constructor() {
+      this.panel = null;
+      this.isVisible = false;
+    }
+
+    toggle() {
+      if (this.isVisible) {
+        this.hide();
+      } else {
+        this.show();
+      }
+    }
+
+    show() {
+      if (!this.panel) this.create();
+      requestAnimationFrame(() => {
+        this.panel.classList.add('visible');
+      });
+      this.isVisible = true;
+    }
+
+    hide() {
+      if (this.panel) {
+        this.panel.classList.remove('visible');
+        this.isVisible = false;
+      }
+    }
+
+    create() {
+      this.panel = document.createElement('div');
+      this.panel.className = 'mindflow-debug-panel';
+      this.panel.innerHTML = `
+        <div class="debug-panel-header">
+          <span class="debug-panel-title">🛠️ 调试控制台</span>
+          <button class="debug-panel-close" id="debug-panel-close">×</button>
+        </div>
+        <div class="debug-panel-content">
+          <div class="debug-dsi-control">
+            <div class="debug-label">
+              <span>DSI 值</span>
+              <span id="debug-dsi-value" class="debug-value">0</span>
+            </div>
+            <input type="range" id="debug-dsi-slider" class="debug-slider" min="0" max="100" value="0">
+            <div class="debug-quick-buttons">
+              <button class="debug-quick-btn" data-val="0">0</button>
+              <button class="debug-quick-btn" data-val="45">45</button>
+              <button class="debug-quick-btn" data-val="70">70</button>
+              <button class="debug-quick-btn" data-val="90">90</button>
+            </div>
+          </div>
+          <button class="debug-reset-btn" id="debug-reset-btn">
+            🔄 重置 DSI
+          </button>
+        </div>
+      `;
+      document.body.appendChild(this.panel);
+
+      // 绑定事件
+      document.getElementById('debug-panel-close').addEventListener('click', () => {
+        this.hide();
+      });
+
+      document.getElementById('debug-reset-btn').addEventListener('click', () => {
+        this.resetDSI();
+      });
+
+      // 滑块控制
+      const slider = document.getElementById('debug-dsi-slider');
+      const valueDisplay = document.getElementById('debug-dsi-value');
+
+      slider.addEventListener('input', (e) => {
+        valueDisplay.textContent = e.target.value;
+      });
+
+      slider.addEventListener('change', (e) => {
+        this.setDSI(parseInt(e.target.value));
+      });
+
+      // 快捷按钮
+      document.querySelectorAll('.debug-quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseInt(btn.dataset.val);
+          slider.value = val;
+          valueDisplay.textContent = val;
+          this.setDSI(val);
+        });
+      });
+
+      // 点击外部关闭
+      document.addEventListener('click', (e) => {
+        if (this.isVisible && !this.panel.contains(e.target)
+          && !e.target.closest('#bubble-debug-btn')) {
+          this.hide();
+        }
+      });
+    }
+
+    setDSI(val) {
+      if (chrome.runtime?.id) {
+        chrome.runtime.sendMessage({
+          type: 'DEBUG_SET_DSI',
+          payload: { dsi: val }
+        }).catch(() => { });
+        console.log(`[Debug] 手动设置 DSI: ${val}`);
+      }
+    }
+
+    resetDSI() {
+      if (chrome.runtime?.id) {
+        chrome.runtime.sendMessage({ type: 'RESET_DSI' }).catch(() => { });
+        console.log('[Debug] DSI 已重置');
+      }
+    }
+
+    updateDSI(dsi) {
+      if (!this.panel) return;
+      const slider = document.getElementById('debug-dsi-slider');
+      const valueDisplay = document.getElementById('debug-dsi-value');
+      if (slider && document.activeElement !== slider) {
+        slider.value = Math.round(dsi);
+        if (valueDisplay) valueDisplay.textContent = Math.round(dsi);
+      }
+    }
+  }
+
+  // ============================================
+  // 氛围选择器浮窗 (Atmosphere Panel)
+  // ============================================
+
+  class AtmospherePanel {
+    constructor(interventionManager) {
+      this.panel = null;
+      this.isVisible = false;
+      this.interventionManager = interventionManager;
+      this.currentAtmosphere = 'forest'; // 默认森林
+    }
+
+    toggle() {
+      if (this.isVisible) {
+        this.hide();
+      } else {
+        this.show();
+      }
+    }
+
+    show() {
+      if (!this.panel) this.create();
+      requestAnimationFrame(() => {
+        this.panel.classList.add('visible');
+      });
+      this.isVisible = true;
+    }
+
+    hide() {
+      if (this.panel) {
+        this.panel.classList.remove('visible');
+        this.isVisible = false;
+      }
+    }
+
+    create() {
+      this.panel = document.createElement('div');
+      this.panel.className = 'mindflow-atmosphere-panel';
+      this.panel.innerHTML = `
+        <div class="atmosphere-panel-header">
+          <span class="atmosphere-panel-title">🎨 背景氛围</span>
+          <button class="atmosphere-panel-close" id="atmosphere-panel-close">×</button>
+        </div>
+        <div class="atmosphere-panel-content">
+          <div class="atmosphere-cards">
+            <div class="atmosphere-card" data-atmosphere="forest">
+              <div class="atmosphere-card-icon">🌲</div>
+              <div class="atmosphere-card-name">森林</div>
+              <div class="atmosphere-card-desc">清新自然</div>
+            </div>
+            <div class="atmosphere-card" data-atmosphere="ocean">
+              <div class="atmosphere-card-icon">🌊</div>
+              <div class="atmosphere-card-name">海洋</div>
+              <div class="atmosphere-card-desc">宁静深邃</div>
+            </div>
+            <div class="atmosphere-card" data-atmosphere="fire">
+              <div class="atmosphere-card-icon">🔥</div>
+              <div class="atmosphere-card-name">火焰</div>
+              <div class="atmosphere-card-desc">温暖舒适</div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(this.panel);
+
+      // 绑定事件
+      document.getElementById('atmosphere-panel-close').addEventListener('click', () => {
+        this.hide();
+      });
+
+      // 氛围卡片点击
+      document.querySelectorAll('.atmosphere-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const atmosphere = card.dataset.atmosphere;
+          this.selectAtmosphere(atmosphere);
+        });
+      });
+
+      // 点击外部关闭
+      document.addEventListener('click', (e) => {
+        if (this.isVisible && !this.panel.contains(e.target)
+          && !e.target.closest('#bubble-atmosphere-btn')) {
+          this.hide();
+        }
+      });
+
+      // 设置默认选中
+      this.updateSelection(this.currentAtmosphere);
+    }
+
+    selectAtmosphere(type) {
+      this.currentAtmosphere = type;
+      this.updateSelection(type);
+
+      // 触发氛围切换
+      if (this.interventionManager) {
+        this.interventionManager.setAtmosphere(type);
+      }
+
+      console.log(`[Atmosphere] 切换到 ${type} 氛围`);
+
+      // 选择后自动关闭面板
+      setTimeout(() => this.hide(), 300);
+    }
+
+    updateSelection(type) {
+      if (!this.panel) return;
+      document.querySelectorAll('.atmosphere-card').forEach(card => {
+        if (card.dataset.atmosphere === type) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+    }
+  }
+
+  // ============================================
   // 侧边栏面板 (Sidebar Panel)
   // ============================================
 
@@ -1977,6 +2233,8 @@
       this.panel = null;
       this.digitalAvatar = null;
       this.statusBubble = null;
+      this.debugPanel = null;        // 新增
+      this.atmospherePanel = null;   // 新增
       this.isVisible = false;
       this.dsi = 0;
       this.level = 0;
@@ -1987,6 +2245,10 @@
     init() {
       // 创建气泡弹窗（先创建，因为它需要获取侧边栏引用）
       this.statusBubble = new StatusBubble(() => this);
+
+      // 新增：创建调试面板和氛围选择器
+      this.debugPanel = new DebugPanel();
+      this.atmospherePanel = null; // 延迟创建，需要 interventionManager
 
       // 新增：记录上一次的压力等级，用于主动说话功能
       this.lastLevel = 0;
@@ -2098,6 +2360,33 @@
       // 更新数字人头像状态
       if (this.digitalAvatar) {
         this.digitalAvatar.updateDSI(this.dsi);
+      }
+    }
+
+    /**
+     * 新增:切换调试面板
+     */
+    toggleDebugPanel() {
+      if (this.debugPanel) {
+        this.debugPanel.toggle();
+      }
+    }
+
+    /**
+     * 新增:切换氛围选择器
+     */
+    toggleAtmospherePanel() {
+      if (this.atmospherePanel) {
+        this.atmospherePanel.toggle();
+      }
+    }
+
+    /**
+     * 新增:设置InterventionManager引用(用于氛围切换)
+     */
+    setInterventionManager(manager) {
+      if (!this.atmospherePanel) {
+        this.atmospherePanel = new AtmospherePanel(manager);
       }
     }
 
@@ -2376,6 +2665,11 @@
             debugSlider.value = Math.round(this.dsi);
             if (debugDisplay) debugDisplay.textContent = `DSI: ${Math.round(this.dsi)}`;
           }
+
+          // ✅ 新增：同步更新调试面板的DSI值
+          if (this.debugPanel) {
+            this.debugPanel.updateDSI(this.dsi);
+          }
         }
       } catch (error) {
         // 扩展上下文可能无效，静默忽略
@@ -2435,6 +2729,9 @@
 
   // 创建侧边栏面板
   const sidebarPanel = new SidebarPanel();
+
+  // 设置InterventionManager引用(用于氛围切换)
+  sidebarPanel.setInterventionManager(interventionManager);
 
   // 通知 background.js content script 已就绪，并发送页面信息
   try {

@@ -753,7 +753,6 @@
 }
 
 /* 紧急跳过按钮（尊重用户控制权）*/
-/* 紧急跳过按钮（尊重用户控制权）*/
 .mindflow-therapy-skip {
   display: inline-block;
   padding: 12px 30px;
@@ -775,10 +774,31 @@
   transform: scale(1.05);
 }
 
-.mindflow-therapy-skip:hover {
-  background: rgba(255, 255, 255, 0.25);
+/* 气泡底部图标按钮 */
+.bubble-action-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
   color: white;
-  transform: scale(1.05);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bubble-action-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bubble-action-btn:active {
+  transform: scale(0.95);
 }
 
 /* ============================================
@@ -2026,7 +2046,288 @@
 /* ============================================
    数字人头像 (Digital Avatar)
    替代原浮动按钮，6种可爱状态
+   ============================================*/
+/* 数字人头像拖拽提示 */
+.digital-avatar-dragging {
+  cursor: grabbing !important;
+  opacity: 0.8;
+}
+
+/* ============================================
+   调试控制台浮窗 (Debug Panel)
    ============================================ */
+
+.mindflow-debug-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 320px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(25px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 999998;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Nunito', 'PingFang SC', sans-serif;
+}
+
+.mindflow-debug-panel.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.debug-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.debug-panel-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mindflow-primary);
+}
+
+.debug-panel-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.debug-panel-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+.debug-panel-content {
+  padding: 20px;
+}
+
+.debug-dsi-control {
+  margin-bottom: 20px;
+}
+
+.debug-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.debug-value {
+  font-weight: 600;
+  color: var(--mindflow-primary);
+  font-size: 1.1rem;
+}
+
+.debug-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e0e0e0;
+  outline: none;
+  -webkit-appearance: none;
+  margin-bottom: 15px;
+}
+
+.debug-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--mindflow-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.debug-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.2);
+}
+
+.debug-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--mindflow-primary);
+  cursor: pointer;
+  border: none;
+}
+
+.debug-quick-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.debug-quick-btn {
+  padding: 8px;
+  background: rgba(45, 106, 79, 0.1);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  border-radius: 8px;
+  color: var(--mindflow-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.debug-quick-btn:hover {
+  background: rgba(45, 106, 79, 0.2);
+  transform: translateY(-2px);
+}
+
+.debug-reset-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--mindflow-primary) 0%, var(--mindflow-accent) 100%);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.debug-reset-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(45, 106, 79, 0.3);
+}
+
+/* ============================================
+   氛围选择器浮窗 (Atmosphere Panel)
+   ============================================ */
+
+.mindflow-atmosphere-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 420px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(25px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 999998;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Nunito', 'PingFang SC', sans-serif;
+}
+
+.mindflow-atmosphere-panel.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.atmosphere-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.atmosphere-panel-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mindflow-primary);
+}
+
+.atmosphere-panel-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.atmosphere-panel-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+.atmosphere-panel-content {
+  padding: 20px;
+}
+
+.atmosphere-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.atmosphere-card {
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.05) 0%, rgba(149, 213, 178, 0.05) 100%);
+  border: 2px solid rgba(45, 106, 79, 0.1);
+  border-radius: 12px;
+  padding: 20px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.atmosphere-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(45, 106, 79, 0.3);
+  box-shadow: 0 4px 15px rgba(45, 106, 79, 0.15);
+}
+
+.atmosphere-card.active {
+  background: linear-gradient(135deg, var(--mindflow-primary) 0%, var(--mindflow-accent) 100%);
+  border-color: var(--mindflow-primary);
+  color: white;
+}
+
+.atmosphere-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.atmosphere-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.atmosphere-card.active .atmosphere-card-name,
+.atmosphere-card.active .atmosphere-card-desc {
+  color: white;
+}
+
+.atmosphere-card-desc {
+  font-size: 0.75rem;
+  color: #999;
+}
 
 .digital-avatar {
   position: fixed;
@@ -2370,29 +2671,36 @@
 .bubble-footer {
   display: flex;
   justify-content: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.bubble-debug-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background: rgba(45, 106, 79, 0.08);
-  border: 1px solid rgba(45, 106, 79, 0.15);
-  border-radius: 10px;
-  color: #2D6A4F;
-  font-size: 13px;
-  font-weight: 500;
+/* 气泡底部图标按钮 */
+.bubble-action-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
 }
 
-.bubble-debug-btn:hover {
-  background: rgba(45, 106, 79, 0.15);
-  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.15);
-  transform: translateY(-1px);
+.bubble-action-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bubble-action-btn:active {
+  transform: scale(0.95);
 }
 
 /* 气泡颜色主题 */

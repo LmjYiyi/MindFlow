@@ -1567,11 +1567,13 @@
   // ============================================
 
   class DigitalAvatar {
-    constructor(onClick) {
+    constructor(onClick, onHover, onLeave) {
       this.container = null;
       this.currentState = 'zen'; // 初始状态
       this.dsi = 0;
       this.onClick = onClick;
+      this.onHover = onHover;   // 新增：悬停回调
+      this.onLeave = onLeave;   // 新增：离开回调
       this.init();
     }
 
@@ -1582,11 +1584,21 @@
       this.container.innerHTML = this.renderSVG('zen');
       document.body.appendChild(this.container);
 
-      // 点击触发回调 + 短暂Q弹动画
+      // 1. 点击触发回调 + 短暂Q弹动画
       this.container.addEventListener('click', (e) => {
         e.stopPropagation();
         this.playPokeAnimation();
         if (this.onClick) this.onClick();
+      });
+
+      // 2. 新增：鼠标悬停逻辑
+      this.container.addEventListener('mouseenter', () => {
+        if (this.onHover) this.onHover();
+      });
+
+      // 3. 新增：鼠标离开逻辑
+      this.container.addEventListener('mouseleave', () => {
+        if (this.onLeave) this.onLeave();
       });
 
       // 可拖拽
@@ -1798,6 +1810,8 @@
       this.bubble = null;
       this.getSidebar = getSidebar; // 获取侧边栏实例的回调
       this.isVisible = false;
+      this.isHoverTriggered = false;  // 新增：是否由悬停触发
+      this.isClickLocked = false;     // 新增：是否被点击锁定（点击打开的不会因 hover 离开而关闭）
     }
 
     toggle(dsi) {
@@ -1920,16 +1934,51 @@
       // 创建气泡弹窗（先创建，因为它需要获取侧边栏引用）
       this.statusBubble = new StatusBubble(() => this);
 
-      // 创建数字人头像（替代原浮动按钮）
-      this.digitalAvatar = new DigitalAvatar(() => {
-        this.statusBubble.toggle(this.dsi);
-      });
+      // 新增：记录上一次的压力等级，用于主动说话功能
+      this.lastLevel = 0;
+
+      // 创建数字人头像（传入三个回调：点击、悬停、离开）
+      this.digitalAvatar = new DigitalAvatar(
+        // 1. onClick: 点击时锁定/解锁气泡
+        () => {
+          if (this.statusBubble.isVisible) {
+            // 如果已显示，点击则关闭并解除锁定
+            this.statusBubble.hide();
+            this.statusBubble.isClickLocked = false;
+          } else {
+            // 如果未显示，点击则打开并锁定（不会因 hover 离开而关闭）
+            this.statusBubble.show(this.dsi);
+            this.statusBubble.isClickLocked = true;
+            this.statusBubble.isHoverTriggered = false;
+          }
+        },
+        // 2. onHover: 悬停显示（如果当前没有被锁定显示）
+        () => {
+          if (!this.statusBubble.isVisible) {
+            this.statusBubble.show(this.dsi);
+            this.statusBubble.isHoverTriggered = true;
+            this.statusBubble.isClickLocked = false;
+          }
+        },
+        // 3. onLeave: 离开隐藏（只有悬停触发的才隐藏，点击锁定的不隐藏）
+        () => {
+          if (this.statusBubble.isVisible &&
+            this.statusBubble.isHoverTriggered &&
+            !this.statusBubble.isClickLocked) {
+            this.statusBubble.hide();
+            this.statusBubble.isHoverTriggered = false;
+          }
+        }
+      );
 
       // 创建侧边栏面板（精简版）
       this.createPanel();
 
       // 定期更新 DSI 显示
       setInterval(() => this.updateDSI(), 1000);
+
+      // 新增：闲时碎碎念（每 3 分钟随机冒一句治愈的话）
+      this.startIdleChatter();
 
       // 监听键盘快捷键（Alt+M 切换面板）
       document.addEventListener('keydown', (e) => {
@@ -1938,6 +1987,34 @@
           this.toggle();
         }
       });
+    }
+
+    /**
+     * 新增：闲时碎碎念功能
+     * 每隔一段时间，数字人自动冒出一句治愈的话
+     */
+    startIdleChatter() {
+      // 随机 2-4 分钟后开始第一次碎碎念
+      const scheduleNextChatter = () => {
+        const delay = (Math.random() * 120 + 120) * 1000; // 2-4分钟
+        setTimeout(() => {
+          // 只有当气泡没显示、用户不在操作时才冒泡
+          if (!this.statusBubble.isVisible && this.dsi < 70) {
+            console.log('[Mindy] 💬 闲时碎碎念...');
+            this.statusBubble.show(this.dsi);
+            this.statusBubble.isHoverTriggered = true; // 标记为非锁定，5秒后自动消失
+
+            // 5秒后自动隐藏
+            setTimeout(() => {
+              if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
+                this.statusBubble.hide();
+              }
+            }, 5000);
+          }
+          scheduleNextChatter(); // 安排下一次
+        }, delay);
+      };
+      scheduleNextChatter();
     }
 
     /**
@@ -2130,6 +2207,27 @@
           } else {
             calculatedLevel = 0;  // 状态良好 - 正常浏览
           }
+
+          // === 新增：状态突变主动说话逻辑 ===
+          // 如果压力等级上升了（比如从 0 变到 2，或者 1 变到 3）
+          if (calculatedLevel > this.lastLevel && calculatedLevel >= 2) {
+            console.log('[Mindy] ⚠️ 压力升级，主动提示用户');
+
+            // 强制显示气泡
+            if (!this.statusBubble.isVisible) {
+              this.statusBubble.show(this.dsi);
+              this.statusBubble.isHoverTriggered = true; // 标记为自动触发
+              this.statusBubble.isClickLocked = false;
+
+              // 6秒后自动消失，避免一直挡着
+              setTimeout(() => {
+                if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
+                  this.statusBubble.hide();
+                }
+              }, 6000);
+            }
+          }
+          this.lastLevel = calculatedLevel; // 更新记录
 
           // 使用计算出的级别，而不是 this.level（可能未同步）
           const displayLevel = calculatedLevel;

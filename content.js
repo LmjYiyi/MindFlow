@@ -2225,8 +2225,405 @@
   }
 
   // ============================================
-  // 侧边栏面板 (Sidebar Panel)
+  // HUD 风格数字人挂件 (MindFlow HUD)
   // ============================================
+
+  class MindFlowHUD {
+    constructor() {
+      this.container = null;
+      this.avatar = null;
+      this.speechBubble = null;
+      this.dsiBadge = null;
+      this.toolBtn = null;
+      this.paintBtn = null;
+
+      this.debugPanel = null;
+      this.atmospherePanel = null;
+
+      this.dsi = 0;
+      this.level = 0;
+      this.isBubbleVisible = false;
+
+      this.init();
+    }
+
+    init() {
+      // 创建调试面板和氛围选择器
+      this.debugPanel = new DebugPanel();
+      this.atmospherePanel = null; // 延迟创建
+
+      // 创建 HUD 容器
+      this.createHUDContainer();
+
+      // 绑定事件
+      this.bindEvents();
+
+      // 启动 DSI 轮询
+      this.startDSIPolling();
+    }
+
+    createHUDContainer() {
+      // 主容器
+      this.container = document.createElement('div');
+      this.container.id = 'mindflow-hud-container';
+      this.container.className = 'mindflow-hud-container';
+
+      // 对话气泡（默认隐藏）
+      this.speechBubble = this.createSpeechBubble();
+
+      // HUD 核心组件
+      const hudCore = document.createElement('div');
+      hudCore.className = 'hud-core';
+
+      // 数字人头像（中心）
+      this.avatar = this.createAvatar();
+      hudCore.appendChild(this.avatar);
+
+      // 底部控制栏 (Dock)
+      const controlDock = document.createElement('div');
+      controlDock.className = 'hud-control-dock';
+
+      // 左按钮 - 工具
+      this.toolBtn = document.createElement('button');
+      this.toolBtn.className = 'dock-btn dock-tool-btn';
+      this.toolBtn.innerHTML = '🛠️';
+      this.toolBtn.title = '调试控制台';
+
+      // 中间 DSI
+      this.dsiBadge = document.createElement('div');
+      this.dsiBadge.className = 'dock-dsi';
+      this.dsiBadge.innerHTML = 'DSI: <span id="hud-dsi-value">0</span>';
+
+      // 右按钮 - 皮肤
+      this.paintBtn = document.createElement('button');
+      this.paintBtn.className = 'dock-btn dock-paint-btn';
+      this.paintBtn.innerHTML = '🎨';
+      this.paintBtn.title = '背景氛围';
+
+      // 按顺序组装 Dock
+      controlDock.appendChild(this.toolBtn);
+      controlDock.appendChild(this.dsiBadge);
+      controlDock.appendChild(this.paintBtn);
+
+      // 把 Dock 放到核心容器
+      hudCore.appendChild(controlDock);
+
+      // 组装主容器
+      this.container.appendChild(this.speechBubble);
+      this.container.appendChild(hudCore);
+
+      // 添加到页面
+      document.body.appendChild(this.container);
+
+      // 恢复上次位置
+      this.restorePosition();
+    }
+
+    createSpeechBubble() {
+      const bubble = document.createElement('div');
+      bubble.className = 'hud-speech-bubble';
+      bubble.innerHTML = `
+        <div class="bubble-quote" id="hud-bubble-quote">保持这份平静，你值得拥有美好</div>
+      `;
+      return bubble;
+    }
+
+    createSatelliteButton(emoji, type, position) {
+      const btn = document.createElement('button');
+      btn.className = `hud-satellite-btn hud-${type}-btn hud-pos-${position}`;
+      btn.innerHTML = emoji;
+      btn.title = type === 'tool' ? '调试控制台' : '背景氛围';
+      return btn;
+    }
+
+    createAvatar() {
+      const avatarContainer = document.createElement('div');
+      avatarContainer.className = 'hud-avatar';
+      avatarContainer.innerHTML = this.renderAvatarSVG('zen');
+      return avatarContainer;
+    }
+
+    createDSIBadge() {
+      const badge = document.createElement('div');
+      badge.className = 'hud-dsi-badge';
+      badge.innerHTML = 'DSI: <span id="hud-dsi-value">0</span>';
+      return badge;
+    }
+
+    bindEvents() {
+      // 头像点击 - 切换对话气泡
+      this.avatar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleSpeechBubble();
+      });
+
+      // 卫星按钮 - 工具
+      this.toolBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDebugPanel();
+      });
+
+      // 卫星按钮 - 画板
+      this.paintBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleAtmospherePanel();
+      });
+
+      // 点击外部关闭气泡
+      document.addEventListener('click', (e) => {
+        if (this.isBubbleVisible &&
+          !this.speechBubble.contains(e.target) &&
+          !this.avatar.contains(e.target)) {
+          this.hideSpeechBubble();
+        }
+      });
+
+      // 启用拖拽
+      this.makeDraggable();
+    }
+
+    toggleSpeechBubble() {
+      if (this.isBubbleVisible) {
+        this.hideSpeechBubble();
+      } else {
+        this.showSpeechBubble();
+      }
+    }
+
+    showSpeechBubble() {
+      // 更新气泡内容
+      this.updateBubbleContent();
+
+      // 显示气泡
+      requestAnimationFrame(() => {
+        this.speechBubble.classList.add('visible');
+      });
+      this.isBubbleVisible = true;
+    }
+
+    hideSpeechBubble() {
+      this.speechBubble.classList.remove('visible');
+      this.isBubbleVisible = false;
+    }
+
+    updateBubbleContent() {
+      const quoteEl = document.getElementById('hud-bubble-quote');
+      if (quoteEl) quoteEl.textContent = getRandomQuote(this.dsi);
+    }
+
+    getStatusText(dsi) {
+      if (dsi <= 30) return '😊 状态极佳';
+      if (dsi <= 50) return '✨ 心流区间';
+      if (dsi <= 70) return '⚡ 压力上升';
+      if (dsi <= 85) return '😰 需要休息';
+      return '😫 高压预警';
+    }
+
+    toggleDebugPanel() {
+      if (this.debugPanel) {
+        this.debugPanel.toggle();
+      }
+    }
+
+    toggleAtmospherePanel() {
+      if (this.atmospherePanel) {
+        this.atmospherePanel.toggle();
+      }
+    }
+
+    setInterventionManager(manager) {
+      if (!this.atmospherePanel) {
+        this.atmospherePanel = new AtmospherePanel(manager);
+      }
+    }
+
+    // 拖拽功能
+    makeDraggable() {
+      let isDragging = false;
+      let startX, startY, startLeft, startTop;
+
+      this.avatar.addEventListener('mousedown', (e) => {
+        // 忽略右键和中键
+        if (e.button !== 0) return;
+
+        isDragging = true;
+        const rect = this.container.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = rect.left;
+        startTop = rect.top;
+
+        this.container.style.transition = 'none';
+        this.avatar.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        let newLeft = startLeft + dx;
+        let newTop = startTop + dy;
+
+        // 限制在视口内
+        newLeft = Math.max(10, Math.min(window.innerWidth - 150, newLeft));
+        newTop = Math.max(10, Math.min(window.innerHeight - 150, newTop));
+
+        this.container.style.left = newLeft + 'px';
+        this.container.style.top = newTop + 'px';
+        this.container.style.right = 'auto';
+        this.container.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          this.container.style.transition = '';
+          this.avatar.style.cursor = 'pointer';
+
+          // 保存位置
+          this.savePosition();
+        }
+      });
+    }
+
+    savePosition() {
+      localStorage.setItem('mindflow-hud-left', this.container.style.left);
+      localStorage.setItem('mindflow-hud-top', this.container.style.top);
+    }
+
+    restorePosition() {
+      const savedLeft = localStorage.getItem('mindflow-hud-left');
+      const savedTop = localStorage.getItem('mindflow-hud-top');
+
+      if (savedLeft && savedTop) {
+        this.container.style.left = savedLeft;
+        this.container.style.top = savedTop;
+        this.container.style.right = 'auto';
+        this.container.style.bottom = 'auto';
+      }
+    }
+
+    // 渲染头像SVG
+    renderAvatarSVG(state) {
+      let bodyColor = '#F8FAF7';
+      let face = '';
+      let extras = '';
+      let sproutColor = '#81C784';
+
+      switch (state) {
+        case 'zen': // 森之静谧
+          bodyColor = '#F8FAF7';
+          face = `
+            <path d="M19 34 Q23 30 27 34" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M33 34 Q37 30 41 34" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M26 40 Q30 44 34 40" fill="none" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+          `;
+          break;
+
+        case 'healing': // 治愈时刻
+          bodyColor = '#A5D6A7';
+          sproutColor = '#66BB6A';
+          face = `
+            <path d="M19 34 Q23 36 27 34" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M33 34 Q37 36 41 34" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M27 41 Q30 43 33 41" stroke="#1B5E20" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          `;
+          extras = `
+            <circle class="glow-particle" cx="12" cy="50" r="2" fill="#FFF9C4" opacity="0.8"/>
+            <circle class="glow-particle" cx="52" cy="20" r="2.5" fill="#FFF9C4" opacity="0.8"/>
+          `;
+          break;
+
+        case 'sleep': // 林间小憩
+          bodyColor = '#F8FAF7';
+          face = `
+            <path d="M19 35 L27 35" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M33 35 L41 35" stroke="#5d4037" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M27 41 Q30 43 33 41" stroke="#5d4037" stroke-width="1" fill="none"/>
+          `;
+          extras = `
+            <circle class="snot-bubble" cx="36" cy="45" r="4" fill="#B3E5FC" stroke="#81D4FA" stroke-width="0.5" opacity="0.8"/>
+            <text x="48" y="22" font-family="Arial" font-size="8" fill="#78909C" font-weight="bold">Zzz</text>
+          `;
+          break;
+
+        default:
+          face = `
+            <circle cx="22" cy="34" r="2" fill="#333"/>
+            <circle cx="38" cy="34" r="2" fill="#333"/>
+            <path d="M27 42 Q30 44 33 42" stroke="#5d4037" stroke-width="1.5" fill="none"/>
+          `;
+      }
+
+      const cheeks = `
+        <ellipse cx="17" cy="38" rx="3" ry="1.5" fill="#FFCDD2" opacity="0.6"/>
+        <ellipse cx="43" cy="38" rx="3" ry="1.5" fill="#FFCDD2" opacity="0.6"/>
+      `;
+
+      const sprout = `
+        <path class="avatar-sprout" d="M30 16 Q25 6 18 10 Q25 15 30 16" fill="${sproutColor}" stroke="#5d4037" stroke-width="0.8"/>
+        <path class="avatar-sprout" d="M30 16 Q35 6 42 10 Q35 15 30 16" fill="${sproutColor}" stroke="#5d4037" stroke-width="0.8"/>
+        <path d="M30 16 L30 20" stroke="#5d4037" stroke-width="1"/>
+      `;
+
+      return `
+        <svg viewBox="0 0 60 65" class="avatar-svg">
+          <ellipse class="avatar-body" cx="30" cy="38" rx="22" ry="18" fill="${bodyColor}" stroke="#5d4037" stroke-width="1.5"/>
+          ${sprout}
+          ${cheeks}
+          ${face}
+          ${extras}
+        </svg>
+      `;
+    }
+
+    updateAvatarState(dsi) {
+      let state;
+      if (dsi <= 30) state = 'zen';
+      else if (dsi <= 85) state = 'healing';
+      else state = 'sleep';
+
+      this.avatar.innerHTML = this.renderAvatarSVG(state);
+    }
+
+    // DSI 轮询
+    startDSIPolling() {
+      setInterval(async () => {
+        try {
+          if (!chrome.runtime?.id) return;
+
+          const response = await chrome.runtime.sendMessage({ type: 'GET_DSI' });
+          if (response && response.success) {
+            const data = response.data;
+            this.dsi = data.dsi || 0;
+            this.level = data.level || 0;
+
+            // 更新 DSI 显示
+            const dsiBadgeValue = document.getElementById('hud-dsi-value');
+            if (dsiBadgeValue) {
+              dsiBadgeValue.textContent = Math.round(this.dsi);
+            }
+
+            // 更新头像状态
+            this.updateAvatarState(this.dsi);
+
+            // 同步更新调试面板
+            if (this.debugPanel) {
+              this.debugPanel.updateDSI(this.dsi);
+            }
+          }
+        } catch (error) {
+          // 静默处理
+        }
+      }, 1000);
+    }
+  }
+
+  // ====================================================================== 
+  // 保留旧的 SidebarPanel 类（已废弃，仅作兼容）
+  // ======================================================================
 
   class SidebarPanel {
     constructor() {
@@ -2727,11 +3124,11 @@
   // 创建干预管理器
   const interventionManager = new InterventionManager();
 
-  // 创建侧边栏面板
-  const sidebarPanel = new SidebarPanel();
+  // 创建 HUD 挂件（替代侧边栏面板）
+  const mindflowHUD = new MindFlowHUD();
 
   // 设置InterventionManager引用(用于氛围切换)
-  sidebarPanel.setInterventionManager(interventionManager);
+  mindflowHUD.setInterventionManager(interventionManager);
 
   // 通知 background.js content script 已就绪，并发送页面信息
   try {

@@ -2724,3 +2724,270 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* ============================================
+   HUD 风格数字人挂件 (MindFlow HUD)
+   游戏化悬浮组件：头像 + 卫星按钮 + DSI指示器 + 对话气泡
+   ============================================ */
+
+/* 主容器 - 固定定位，默认右下角 */
+.mindflow-hud-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999999;
+  font-family: 'Nunito', 'PingFang SC', sans-serif;
+}
+
+/* HUD 核心组件容器 */
+.hud-core {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+}
+
+/* 数字人头像 - 中心主体 */
+.hud-avatar {
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 20px rgba(45, 106, 79, 0.4));
+  transition: transform 0.3s ease, filter 0.3s ease;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.hud-avatar:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  filter: drop-shadow(0 6px 24px rgba(45, 106, 79, 0.6));
+}
+
+.hud-avatar .avatar-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* =======================================
+   纯净云朵气泡 (终极优化版)
+   ======================================= */
+
+.hud-speech-bubble {
+  /* 1. 定位与布局 */
+  position: absolute;
+  bottom: 115px; /* 稍微高一点，留出呼吸感 */
+  right: 50%;
+  transform: translateX(50%) scale(0.95);
+  
+  /* 2. Flex布局让内容横向排列 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* 图标和文字的间距 */
+  
+  /* 3. 尺寸控制 */
+  max-width: 260px; /* 限制最大宽度 */
+  width: max-content; /* 宽度随文字自动伸缩 */
+  min-width: 100px;   /* 最小宽度 */
+  
+  /* 4. 视觉核心样式 - 重点修改！ */
+  background: #FFFFFF !important; /* 强制纯白 */
+  border: none !important;        /* 强制去掉任何边框 */
+  border-left: none !important;   /* 双重保险去掉那个绿条 */
+  border-radius: 24px;            /* 超级圆润，像药丸/云朵 */
+  padding: 10px 18px;             /* 舒适的内边距 */
+  
+  /* 5. 高级阴影 (让它浮起来) */
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 15px -3px rgba(45, 106, 79, 0.08); /* 带着一点点主题绿色的阴影 */
+  
+  /* 6. 动画 */
+  z-index: 999998;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* 加入回弹效果，更Q */
+}
+
+/* 显示状态 */
+.hud-speech-bubble.visible {
+  opacity: 1;
+  transform: translateX(50%) scale(1);
+  pointer-events: auto;
+}
+
+/* --- 气泡的小尾巴 (更小更精致) --- */
+.hud-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px; /* 稍微露出一点 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #FFFFFF;
+  /* 旋转正方形变成三角形尾巴，比border画法边缘更平滑 */
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 0 0 4px 0; /* 让尾巴尖端圆润一点点 */
+  box-shadow: 4px 4px 6px -3px rgba(45, 106, 79, 0.08); /* 让尾巴也有阴影 */
+  z-index: -1; /* 藏在气泡下面 */
+}
+
+/* --- 文字样式优化 --- */
+.hud-speech-bubble .bubble-quote {
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  color: #4a5568; /* 深灰，比纯黑柔和 */
+  font-weight: 600; /*稍微加粗一点点，更清晰*/
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  text-align: left;
+  border: none !important; /* 再次确保文字没有边框 */
+  background: transparent !important;
+}
+
+/* --- 图标微调 --- */
+.hud-speech-bubble .bubble-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex; /* 防止图标有些默认间距 */
+}
+
+/* 暴力清除所有可能的内部边框 */
+.hud-speech-bubble * {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* =======================================
+   底部船坞 (Control Dock) - 高度统一版
+   ======================================= */
+
+/* 整个 Dock 容器 */
+.hud-control-dock {
+  position: absolute;
+  bottom: -40px; /* 稍微再往下挪一点点，不遮挡洋葱头 */
+  left: 50%;
+  transform: translateX(-50%);
+  
+  display: flex;
+  align-items: center; /* 垂直居中核心 */
+  gap: 12px; /* 间距 */
+  
+  z-index: 10;
+}
+
+/* 1. 左右按钮：强制 28px */
+.dock-btn {
+  width: 28px;
+  height: 28px;
+  /* 纯圆 */
+  border-radius: 50%; 
+  
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+/* 2. 中间 DSI：高度强制 28px，全圆角 */
+.dock-dsi {
+  height: 28px; /* 【关键】强制与按钮等高 */
+  box-sizing: border-box; /* 确保 padding 不撑大高度 */
+  
+  /* Flex 布局保证文字垂直居中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  padding: 0 14px; /* 两侧留白 */
+  border-radius: 14px; /* 【关键】高度的一半，形成胶囊形 */
+  
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(45, 106, 79, 0.15); /* 稍微深一点的边框，突出数据 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  
+  font-size: 12px;
+  font-weight: 700;
+  color: #2D6A4F;
+  white-space: nowrap;
+}
+
+/* 悬停交互优化 */
+.dock-btn:hover {
+  transform: translateY(-2px); /* 微微上浮 */
+  background: #F0F9F4;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: rgba(45, 106, 79, 0.2);
+}
+
+.dock-btn:active {
+  transform: translateY(0);
+}
+
+#hud-dsi-value {
+  margin-left: 4px; /* 数字和 DSI 标签稍微分开点 */
+  color: #52B788;
+}
+
+/* =======================================
+   废弃的旧样式（保留以防兼容）
+   ======================================= */
+
+/* 旧的卫星按钮样式 - 隐藏 */
+.hud-satellite-btn {
+  display: none !important;
+}
+
+/* 旧的 DSI badge - 隐藏 */
+.hud-dsi-badge {
+  display: none !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .mindflow-hud-container {
+    bottom: 15px;
+    right: 15px;
+  }
+
+  .hud-core {
+    width: 100px;
+    height: 100px;
+  }
+
+  .hud-avatar {
+    width: 65px;
+    height: 65px;
+  }
+
+  .hud-satellite-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .hud-speech-bubble {
+    max-width: 220px;
+    right: 50%;
+    transform: translateX(50%) scale(0.95);
+  }
+  
+  .hud-speech-bubble.visible {
+    transform: translateX(50%) scale(1);
+  }
+}

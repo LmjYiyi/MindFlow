@@ -26,6 +26,16 @@
  */
 
 // ============================================
+// 导入配置文件
+// ============================================
+try {
+  importScripts('config.js');
+} catch (e) {
+  console.error('[MindFlow] 无法加载配置文件 config.js，请确保文件存在');
+  console.error('[MindFlow] 错误详情:', e);
+}
+
+// ============================================
 // 状态存储
 // ============================================
 
@@ -918,6 +928,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true; // 【关键】必须在同步代码块末尾返回 true，表示"稍后会异步发送响应"
 
+    case 'GET_CONTEXT_GREETING':
+      // 🎯 生成上下文问候语（结合页面内容和压力值）
+      (async () => {
+        let responseSent = false;
+        const sendResponseSafe = (data) => {
+          if (!responseSent) {
+            try {
+              sendResponse(data);
+              responseSent = true;
+            } catch (e) {
+              console.error('[Background] sendResponse 失败:', e);
+            }
+          }
+        };
+
+        try {
+          const { title, url, dsi } = message.payload;
+          
+          // 检测页面类型
+          const pageType = detectPageType(url);
+          
+          console.log('[Background] 开始生成上下文问候，页面类型:', pageType, 'DSI:', dsi);
+          const greeting = await generateContextGreeting(title, pageType, dsi);
+          console.log('[Background] 上下文问候生成成功');
+
+          sendResponseSafe({ success: true, data: greeting });
+        } catch (err) {
+          console.error('[Background] 生成上下文问候失败:', err);
+          sendResponseSafe({ success: false, error: err.message || '生成问候失败' });
+        }
+      })();
+      return true; // 异步操作，返回 true
+
     case 'THERAPY_COMPLETED':
       // 🧘 疗愈完成，执行"回退奖励"
       handleTherapyCompletion(tabId);
@@ -999,8 +1042,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * @returns {Promise<string>} - 生成的摘要
  */
 async function callGeminiAPI(text) {
-  const API_KEY = 'AIzaSyDJgX9CF3J-bD_qsiB9NfWY8x5Pl5g7qt8';
-  const MODEL = 'gemini-2.5-flash';
+  // 从配置文件读取 API Key
+  const API_KEY = self.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY_HERE';
+  const MODEL = self.GEMINI_MODEL || 'gemini-2.5-flash-preview-09-2025';
+  
+  if (API_KEY === 'YOUR_GEMINI_API_KEY_HERE' || !API_KEY) {
+    throw new Error('请配置 GEMINI_API_KEY：复制 config.example.js 为 config.js 并填入你的 API key');
+  }
+  
   // 注意：Gemini 接口 URL 包含 API Key
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
@@ -1060,6 +1109,98 @@ async function callGeminiAPI(text) {
 
   } catch (error) {
     console.error('[Gemini API] 调用失败:', error);
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('无法连接到 Google API，请检查网络（可能需要代理）');
+    }
+    throw error;
+  }
+}
+
+/**
+ * 生成上下文问候语
+ * @param {string} pageTitle - 页面标题
+ * @param {string} pageType - 页面类型
+ * @param {number} dsi - 压力指数
+ * @returns {Promise<string>} - 生成的问候语
+ */
+async function generateContextGreeting(pageTitle, pageType, dsi) {
+  // 从配置文件读取 API Key
+  const API_KEY = self.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY_HERE';
+  const MODEL = self.GEMINI_MODEL || 'gemini-2.5-flash-preview-09-2025';
+  
+  if (API_KEY === 'YOUR_GEMINI_API_KEY_HERE' || !API_KEY) {
+    throw new Error('请配置 GEMINI_API_KEY：复制 config.example.js 为 config.js 并填入你的 API key');
+  }
+  
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+
+  // 清洗页面标题（截取前50个字符）
+  const cleanTitle = pageTitle ? pageTitle.trim().slice(0, 50) : '当前页面';
+
+  // 页面类型映射
+  const pageTypeMap = {
+    'social': '社交',
+    'news': '新闻',
+    'shopping': '购物',
+    'document': '文档/学习',
+    'video': '视频',
+    'other': '其他'
+  };
+  const pageTypeName = pageTypeMap[pageType] || '其他';
+
+  // 构建 Prompt（优化版：更符合 Mindy 人设）
+  const prompt = `你是一个温柔可爱的数字健康助手 Mindy。
+用户正在浏览网页：
+- 标题: "${cleanTitle}" 
+- 类型: ${pageTypeName} (social=社交, news=新闻, shopping=购物, document=学习/工作, video=视频)
+- 当前压力值(DSI): ${dsi} (0-100，越高越焦虑)
+
+请根据当前网页内容和压力状态，主动对用户说一句简短的关怀语（20字以内）。
+要求：
+1. 必须结合网页场景（例如：购物时提醒理性，看文档时鼓励专注，刷视频时提醒休息）。
+2. 语气像朋友一样轻松自然，可以使用1个emoji。
+3. 不要说教，要提供情绪价值。
+4. 直接输出内容，不要包含引号。`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Gemini API 请求失败 (${response.status})`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.error?.status || errorMessage;
+        console.error('[Gemini API] 错误详情:', errorData);
+      } catch (e) {
+        errorMessage = `Gemini API 请求失败 (${response.status}): ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    const greeting = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!greeting || greeting.trim().length === 0) {
+      console.error('[Gemini API] 响应数据结构:', data);
+      throw new Error('Gemini 未能生成有效的问候语');
+    }
+
+    console.log('[Gemini API] 上下文问候生成成功');
+    return greeting.trim();
+  } catch (error) {
+    console.error('[Gemini API] 上下文问候生成失败:', error);
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       throw new Error('无法连接到 Google API，请检查网络（可能需要代理）');
     }

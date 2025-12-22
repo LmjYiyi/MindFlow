@@ -2408,7 +2408,132 @@
 
     updateBubbleContent() {
       const quoteEl = document.getElementById('hud-bubble-quote');
-      if (quoteEl) quoteEl.textContent = getRandomQuote(this.dsi);
+      if (!quoteEl) return;
+
+      // 显示"正在思考"的状态
+      quoteEl.textContent = "正在感受你的状态... 💭";
+
+      // 决定是否使用上下文问候（按需触发策略）
+      const shouldUseContext = this.shouldFetchContextGreeting();
+
+      if (shouldUseContext) {
+        // 尝试获取上下文问候
+        this.fetchContextGreeting(this.dsi).then(greeting => {
+          if (greeting && quoteEl) {
+            quoteEl.textContent = greeting;
+          } else {
+            // 失败则回退到本地随机语录
+            if (quoteEl) quoteEl.textContent = getRandomQuote(this.dsi);
+          }
+        }).catch(() => {
+          // 失败则回退到本地随机语录
+          if (quoteEl) quoteEl.textContent = getRandomQuote(this.dsi);
+        });
+      } else {
+        // 直接使用本地语料（秒开）
+        quoteEl.textContent = getRandomQuote(this.dsi);
+      }
+    }
+
+    /**
+     * 判断是否应该获取上下文问候
+     * 策略：压力高(>60)或随机概率(30%)时触发
+     */
+    shouldFetchContextGreeting() {
+      // 检查缓存，避免频繁请求
+      const cacheKey = `context_greeting_${window.location.href}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const cacheData = JSON.parse(cached);
+        const now = Date.now();
+        // 10分钟内使用缓存
+        if (now - cacheData.timestamp < 10 * 60 * 1000) {
+          return false; // 使用缓存，不重新请求
+        }
+      }
+
+      // 压力高时优先使用 AI 问候
+      if (this.dsi > 60) {
+        return true;
+      }
+
+      // 其他情况按 30% 概率触发
+      return Math.random() < 0.3;
+    }
+
+    /**
+     * 获取上下文问候语
+     * @param {number} dsi - 压力指数
+     * @returns {Promise<string|null>} - 问候语或 null
+     */
+    async fetchContextGreeting(dsi) {
+      const cacheKey = `context_greeting_${window.location.href}`;
+
+      try {
+        // 检查缓存
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const cacheData = JSON.parse(cached);
+          const now = Date.now();
+          // 10分钟内使用缓存
+          if (now - cacheData.timestamp < 10 * 60 * 1000) {
+            console.log('[Context Greeting] 使用缓存');
+            return cacheData.greeting;
+          }
+        }
+
+        // 检查扩展上下文
+        if (!chrome.runtime?.id) {
+          throw new Error('扩展上下文无效');
+        }
+
+        console.log('[Context Greeting] 开始请求上下文问候');
+
+        // 设置超时处理
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('请求超时（15秒）'));
+          }, 15000); // 15秒超时
+        });
+
+        const messagePromise = chrome.runtime.sendMessage({
+          type: 'GET_CONTEXT_GREETING',
+          payload: {
+            title: document.title,
+            url: window.location.href,
+            dsi: dsi
+          }
+        }).catch(err => {
+          if (chrome.runtime.lastError) {
+            const errorMsg = chrome.runtime.lastError.message || '无法连接到扩展后台服务';
+            console.error('[Context Greeting] 扩展上下文错误:', errorMsg);
+            throw new Error(errorMsg);
+          }
+          console.error('[Context Greeting] 消息发送失败:', err);
+          throw err;
+        });
+
+        // 使用 Promise.race 来处理超时
+        const response = await Promise.race([messagePromise, timeoutPromise]);
+
+        if (response && response.success) {
+          const greeting = response.data;
+          
+          // 存入缓存
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            greeting: greeting,
+            timestamp: Date.now()
+          }));
+
+          console.log('[Context Greeting] 获取成功');
+          return greeting;
+        } else {
+          throw new Error(response?.error || '获取问候失败');
+        }
+      } catch (error) {
+        console.error('[Context Greeting] 获取失败:', error);
+        return null;
+      }
     }
 
     getStatusText(dsi) {
@@ -2712,31 +2837,108 @@
     }
 
     /**
-     * 新增：闲时碎碎念功能
-     * 每隔一段时间，数字人自动冒出一句治愈的话
+     * 请求 AI 生成场景化问候
+     * 包含：加载状态 -> 请求 -> 显示 -> 自动关闭
+     */
+    async fetchAIGreeting() {
+      // 1. 获取气泡文字元素
+      const bubbleQuote = document.getElementById('bubble-quote');
+      
+      // 2. 显示气泡并进入"思考中"状态
+      this.statusBubble.show(this.dsi);
+      this.updateBubblePosition(); // 更新气泡位置
+      this.statusBubble.isHoverTriggered = true; // 标记为自动触发（非锁定）
+      
+      if (bubbleQuote) {
+        // 显示一个临时的思考动画或文字
+        bubbleQuote.textContent = '正在观察你的状态... 💭';
+      }
+
+      try {
+        // 3. 向后台发送请求
+        const response = await chrome.runtime.sendMessage({
+          type: 'GET_CONTEXT_GREETING',
+          payload: {
+            title: document.title,
+            url: window.location.href, // 传递 URL，background.js 会自动检测页面类型
+            dsi: this.dsi
+          }
+        });
+
+        // 4. 处理响应
+        if (response && response.success && response.data) {
+          // A. 成功：显示 AI 生成的语录
+          if (bubbleQuote) bubbleQuote.textContent = response.data;
+          console.log('[Mindy] 🤖 AI 主动问候:', response.data);
+        } else {
+          // B. 失败（网络或配额问题）：回退到本地语料库
+          console.warn('[Mindy] AI 请求失败，使用本地兜底');
+          if (bubbleQuote) bubbleQuote.textContent = getRandomQuote(this.dsi);
+        }
+      } catch (e) {
+        // C. 异常：回退到本地语料库
+        console.error('[Mindy] 通信异常，使用本地兜底');
+        if (bubbleQuote) bubbleQuote.textContent = getRandomQuote(this.dsi);
+      }
+
+      // 5. 设置自动关闭定时器 (8秒后消失，给用户足够时间阅读)
+      setTimeout(() => {
+        // 只有当它是"自动触发"且"未被用户点击锁定"时才关闭
+        if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
+          this.statusBubble.hide();
+        }
+      }, 8000);
+    }
+
+    /**
+     * 闲时碎碎念 (混合动力版)
+     * 逻辑：每隔 3-6 分钟，有 30% 概率触发 AI，70% 触发本地语料
      */
     startIdleChatter() {
-      // 随机 2-4 分钟后开始第一次碎碎念
       const scheduleNextChatter = () => {
-        const delay = (Math.random() * 120 + 120) * 1000; // 2-4分钟
+        // 频率设定：随机 180秒(3分钟) 到 360秒(6分钟) 触发一次
+        const delay = (Math.random() * 180 + 180) * 1000; 
+        
         setTimeout(() => {
-          // 只有当气泡没显示、用户不在操作时才冒泡
-          if (!this.statusBubble.isVisible && this.dsi < 70) {
-            console.log('[Mindy] 💬 闲时碎碎念...');
-            this.statusBubble.show(this.dsi);
-            this.updateBubblePosition(); // 更新气泡位置
-            this.statusBubble.isHoverTriggered = true; // 标记为非锁定，5秒后自动消失
+          // 触发防御条件：
+          // 1. 气泡当前没有显示 (避免打断用户查看)
+          // 2. 压力不是极高 (极高时可能在疗愈中，不打扰)
+          if (!this.statusBubble.isVisible && this.dsi < 85) {
+            
+            console.log('[Mindy] 💬 准备发起闲时问候...');
+            
+            // === 混合策略核心 ===
+            const probability = Math.random();
+            
+            // 30% 概率尝试 AI 场景问候 (增加新鲜感)
+            if (probability > 0.7) { 
+               this.fetchAIGreeting();
+            } 
+            // 70% 概率使用 本地语料 (秒开、省流、经典)
+            else {
+               this.statusBubble.show(this.dsi);
+               this.updateBubblePosition(); // 更新气泡位置
+               this.statusBubble.isHoverTriggered = true;
+               
+               // 更新为本地语录
+               const bubbleQuote = document.getElementById('bubble-quote');
+               if (bubbleQuote) bubbleQuote.textContent = getRandomQuote(this.dsi);
 
-            // 5秒后自动隐藏
-            setTimeout(() => {
-              if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
-                this.statusBubble.hide();
-              }
-            }, 5000);
+               // 5秒后自动关闭 (本地语录短，时间可短点)
+               setTimeout(() => {
+                 if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
+                   this.statusBubble.hide();
+                 }
+               }, 5000);
+            }
           }
-          scheduleNextChatter(); // 安排下一次
+          
+          // 递归：安排下一次问候
+          scheduleNextChatter(); 
         }, delay);
       };
+
+      // 启动引擎
       scheduleNextChatter();
     }
 
@@ -2968,25 +3170,16 @@
             calculatedLevel = 0;  // 状态良好 - 正常浏览
           }
 
-          // === 新增：状态突变主动说话逻辑 ===
+          // === 状态突变主动说话逻辑 ===
           // 如果压力等级上升了（比如从 0 变到 2，或者 1 变到 3）
+          // 且当前等级至少是 Level 2 (中度压力)
           if (calculatedLevel > this.lastLevel && calculatedLevel >= 2) {
-            console.log('[Mindy] ⚠️ 压力升级，主动提示用户');
-
-            // 强制显示气泡
-            if (!this.statusBubble.isVisible) {
-              this.statusBubble.show(this.dsi);
-              this.statusBubble.isHoverTriggered = true; // 标记为自动触发
-              this.statusBubble.isClickLocked = false;
-
-              // 6秒后自动消失，避免一直挡着
-              setTimeout(() => {
-                if (this.statusBubble.isHoverTriggered && !this.statusBubble.isClickLocked) {
-                  this.statusBubble.hide();
-                }
-              }, 6000);
-            }
+            console.log('[Mindy] ⚠️ 检测到压力升级，发起 AI 即时关怀');
+            
+            // 强制使用 AI 生成安抚话语（这里不走随机概率，因为情况特殊）
+            this.fetchAIGreeting();
           }
+          
           this.lastLevel = calculatedLevel; // 更新记录
 
           // 使用计算出的级别，而不是 this.level（可能未同步）

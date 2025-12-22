@@ -2260,6 +2260,9 @@
 
       // 启动 DSI 轮询
       this.startDSIPolling();
+
+      // 【新增】启动闲时碎碎念
+      this.startIdleChatter();
     }
 
     createHUDContainer() {
@@ -2394,6 +2397,17 @@
       // 更新气泡内容
       this.updateBubbleContent();
 
+      // 显示气泡时，让头像也动一下，吸引眼球
+      if (this.avatar) {
+        this.avatar.classList.add('speaking');
+        // 动画结束后移除类，以便下次可以再次触发
+        setTimeout(() => {
+          if (this.avatar) {
+            this.avatar.classList.remove('speaking');
+          }
+        }, 400);
+      }
+
       // 显示气泡
       requestAnimationFrame(() => {
         this.speechBubble.classList.add('visible');
@@ -2438,6 +2452,7 @@
     /**
      * 判断是否应该获取上下文问候
      * 策略：压力高(>60)或随机概率(30%)时触发
+     * 优化：缩短缓存时间，增加新鲜感
      */
     shouldFetchContextGreeting() {
       // 检查缓存，避免频繁请求
@@ -2446,8 +2461,8 @@
       if (cached) {
         const cacheData = JSON.parse(cached);
         const now = Date.now();
-        // 10分钟内使用缓存
-        if (now - cacheData.timestamp < 10 * 60 * 1000) {
+        // 缩短缓存时间：从 10 分钟改为 5 分钟，增加新鲜感
+        if (now - cacheData.timestamp < 5 * 60 * 1000) {
           return false; // 使用缓存，不重新请求
         }
       }
@@ -2475,8 +2490,8 @@
         if (cached) {
           const cacheData = JSON.parse(cached);
           const now = Date.now();
-          // 10分钟内使用缓存
-          if (now - cacheData.timestamp < 10 * 60 * 1000) {
+          // 缩短缓存时间：从 10 分钟改为 5 分钟，增加新鲜感
+          if (now - cacheData.timestamp < 5 * 60 * 1000) {
             console.log('[Context Greeting] 使用缓存');
             return cacheData.greeting;
           }
@@ -2743,6 +2758,88 @@
           // 静默处理
         }
       }, 1000);
+    }
+
+    /**
+     * 闲时碎碎念 - 定期主动与用户互动
+     * 修复：从废弃的 SidebarPanel 类移植到 MindFlowHUD
+     */
+    startIdleChatter() {
+      // 标记是否正在悬停（避免在用户交互时打扰）
+      this.isHovering = false;
+      
+      // 监听气泡悬停状态
+      if (this.speechBubble) {
+        this.speechBubble.addEventListener('mouseenter', () => {
+          this.isHovering = true;
+        });
+        this.speechBubble.addEventListener('mouseleave', () => {
+          this.isHovering = false;
+        });
+      }
+
+      const scheduleNext = () => {
+        // 缩短间隔，增加存在感：改为 1-3 分钟（原来 3-6 分钟）
+        const delay = (Math.random() * 120 + 60) * 1000; // 60-180秒
+        
+        setTimeout(() => {
+          // 触发防御条件：
+          // 1. 气泡当前没有显示（避免打断用户查看）
+          // 2. 压力不是极高（极高时可能在疗愈中，不打扰）
+          if (!this.isBubbleVisible && this.dsi < 90) {
+            console.log('[Mindy] 💬 准备发起闲时问候...');
+            
+            // 50% 概率触发，提高频率（原来 30%）
+            if (Math.random() > 0.5) {
+              // 决定使用 AI 问候还是本地语录
+              const shouldUseAI = Math.random() > 0.7; // 30% 概率使用 AI
+              
+              if (shouldUseAI) {
+                // 使用 AI 场景问候（showSpeechBubble 会自动调用 updateBubbleContent）
+                this.showSpeechBubble();
+                // AI 问候显示时间延长到 10 秒
+                setTimeout(() => {
+                  if (!this.isHovering) {
+                    this.hideSpeechBubble();
+                  }
+                }, 10000);
+              } else {
+                // 使用本地语录（秒开，不触发 AI 请求）
+                const quoteEl = document.getElementById('hud-bubble-quote');
+                if (quoteEl) {
+                  quoteEl.textContent = getRandomQuote(this.dsi);
+                }
+                // 显示气泡（不调用 updateBubbleContent，避免触发 AI）
+                requestAnimationFrame(() => {
+                  this.speechBubble.classList.add('visible');
+                  // 添加头像动画
+                  if (this.avatar) {
+                    this.avatar.classList.add('speaking');
+                    setTimeout(() => {
+                      if (this.avatar) {
+                        this.avatar.classList.remove('speaking');
+                      }
+                    }, 400);
+                  }
+                });
+                this.isBubbleVisible = true;
+                // 本地语录显示 8 秒（原来 5 秒）
+                setTimeout(() => {
+                  if (!this.isHovering) {
+                    this.hideSpeechBubble();
+                  }
+                }, 8000);
+              }
+            }
+          }
+          
+          // 递归：安排下一次问候
+          scheduleNext();
+        }, delay);
+      };
+
+      // 启动引擎
+      scheduleNext();
     }
   }
 

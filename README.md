@@ -29,7 +29,7 @@ MindFlow 是一款基于用户浏览行为分析的 Chrome 浏览器插件，通
 
 1. **下载项目**
    ```bash
-   git clone https://github.com/your-username/mindflow.git
+   git clone https://github.com/LmjYiyi/mindflow.git
    cd mindflow
    ```
 
@@ -173,13 +173,6 @@ chrome.runtime.sendMessage({ type: 'RESET_DSI' });
 3. 点击「Service Worker」链接
 4. 在打开的 DevTools 中查看 Console
 
-## 📝 开发计划
-
-- [ ] 添加 Popup 设置页面
-- [ ] 支持自定义 DSI 参数
-- [ ] 添加浏览统计面板
-- [ ] 支持网站白名单
-- [ ] 更多视觉疗愈动画主题
 
 ## 📄 许可证
 
